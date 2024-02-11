@@ -36,7 +36,7 @@ pip install FredBrain
 All contributions and ideas are welcome
 # A walk-through - From Search to Time-Series Data
 ## Step 1: Importing and getting our initial dataframe of FRED series IDs
-The first thing we can do is import and then begin with a preliminary search to identify a series we want to extract. To do this, we need to import the FredBrain package and our API_KEY
+The first thing we can do is import and then begin with a preliminary search to identify a series we want to extract. To do this, we need to import the FredBrain package and our api keys. API keys for FRED can be requested here [Fred API Keys](https://fredaccount.stlouisfed.org/apikeys). For OpenAI, keys can be created here [OpenAI API Keys](https://platform.openai.com/api-keys)
 ```sh
 from FredBrain import FredBrain
 from config import FRED_API_KEY, OPENAI_API_KEY
@@ -122,6 +122,6 @@ analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary o
 print(analysis)
 ```
 
-Congratulations! You now have a LLM Powered Economist at your finger tips! Who knows what the world will have in store for you two!
+Congratulations! You now have a LLM Powered Economist at your finger-tips! Who knows what the world will have in store for you two!
 ![img.png](img.png)
 ![img_1.png](img_1.png)
