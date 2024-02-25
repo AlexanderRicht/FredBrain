@@ -1,6 +1,20 @@
 ![Federal Reserve symbol](https://media.istockphoto.com/id/1308151210/photo/fed-federal-reserve-of-usa-sybol-and-sign.jpg?s=612x612&w=0&k=20&c=bO642TWIyj2hGte2WqW3CrWbd3DD3BA6TSRWzH6ocYg= "Federal Reserve")
 
+**Table of Contents**
+1. [Introduction](#Introduction)
+2. [Features](#features)
+3. [Installation](#installation)
+4. [Dependencies](#dependencies)
+5. [License](#license)
+6. [Contributing](#contributing)
+7. [Tutorial](#tutorial)
+   - [Step 1: Importing and Getting Our Initial DataFrame](#step-1-importing-and-getting-our-initial-dataframe-of-fred-series-ids)
+   - [Step 2: Retrieve Additional Metadata](#step-2-retrieve-additional-metadata-related)
+   - [Step 3: Extract Unrevised Data Releases](#step-3-extract-unrevised-data-releases-for-each-series)
+   - [Step 4: Insert DataFrame into MySQL](#step-4-insert-the-dataframe-into-a-mysql-database-for-seamless-storage)
+   - [Step 5: Input DataFrame into OpenAI (GPT-4) for Insights](#step-5-input-the-dataframe-into-openai-gpt-4-for-insights)
 # FredBrain: A Python Package for retrieving Federal Reserve Economic Data at Scale and feeding it to OpenAI
+## Introduction
 [FredBrain](https://pypi.org/project/FredBrain) is a Python package that offers a practical approach for accessing economic data from the Federal Reserve ([FRED API Documentation](https://fred.stlouisfed.org/docs/api/fred/)). It is built to assist those involved in economic research, financial analysis, and model development by providing a straightforward means of data retrieval. Additionally, it takes an experimental approach to integrating the OpenAI GPT framework into the class with the ultimate aim of creating an Ad-Hoc GPT economist expert to assist you in your analysis. Hence, why we refer to the class as `FredBrain`. The class itself will hopefully act as the Brain to power OpenAI Chat Completions. 
 
 Utilizing familiar libraries such as `pandas`, `datetime`, `requests`, and  `openai` FredBrain facilitates the transformation of JSON responses into user-friendly `DataFrame` objects. This process is designed to be intuitive, allowing users to focus more on their analysis, less on data wrangling and to leverage OpenAI chat for analysis support and conclusions.
@@ -8,18 +22,19 @@ Utilizing familiar libraries such as `pandas`, `datetime`, `requests`, and  `ope
 As FredBrain continues to develop, it seeks to maintain a balance between expanding its functionality and ensuring reliability. It strives to be a helpful resource for users who need to integrate economic data into their work, without being overwhelming or overly complex.
 
 FredBrain invites you to streamline the way you interact with economic data, opening up possibilities for more focused research and insightful analyses.
-## Things it does well
+## Features
 - Efficiently navigates through FRED's series data using single or multiple filters, enhancing the user's ability to pinpoint relevant datasets.
 - Streamlines the discovery and selection of economic variables by fetching extensive subsets of FRED categories and their associated series.
 - Equips users with tools to instantly convert series searches or category subsets into comprehensive datasets of original or revised time-series data.
 - Offers the flexibility to fetch time-series data for pre-determined sets of series or categories without additional search requirements.
 - Facilitates the extraction of metadata, preserving critical details about the time-series data for informed analysis.
 - Optimized for scalability, complying with the Federal Reserve's API request limits, enabling extensive data retrieval within the threshold of 1000 requests per minute
+- Provide Seamless MySQL Database Insertion
 - *Integrating OpenAI to create an economist GPT for providing additional insights on data extracted via the FredBrain
   
 *This is experimental and not guaranteed to perform well. The ambition of myself and contributors would be to design a system that feeds data to a GPT to create an Economist GPT
 
-## Installing FredBrain
+## Installation
 Install the package using 
 ```sh
 # or PyPI
@@ -136,10 +151,10 @@ After preparing your `DataFrame` object with the desired FRED data, you can inse
 Before inserting the data, you need to establish a connection with your MySQL server. Gather your MySQL Workbench credentials and determine whether you'll be connecting to an existing database or creating a new one.
 
 To connect to your MySQL database, you'll need the following information:
-host: The hostname or IP address of your MySQL server.
-user: Your MySQL username.
-passwd: Your MySQL password.
-db_name: The name of the database you wish to connect to or create.
+1. host: The hostname or IP address of your MySQL server.
+2. user: Your MySQL username.
+3. passwd: Your MySQL password.
+4. db_name: The name of the database you wish to connect to or create.
 
 You can securely access your credentials using environment variables:
 ```sh
