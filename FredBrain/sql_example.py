@@ -1,21 +1,18 @@
-from FredBrain import FredBrain
-#from config import FRED_API_KEY, OPENAI_API_KEY
+from __init__ import FredBrain
+from SQLBrain import SQLBrain
 import pandas as pd
+import os
 
-fred = FredBrain(fred_api_key='948f94dc85df484f430ca2dfeeba39fe')
+FRED_KEY = os.environ.get("fred_api_key")
 
-search_attributes = ["popularity", "frequency"]
-search_values = [50, "Monthly"]
+fred = FredBrain(fred_api_key= FRED_KEY)
+
+search_attributes = ["frequency"]
+search_values = ["Monthly"]
 # Perform searches for different terms
-search_output_labor = fred.search_brain("Labor", search_attributes, search_values)
-search_output_employment = fred.search_brain("Employment", search_attributes, search_values)
-search_output_wages = fred.search_brain("Wages", search_attributes, search_values)
-# Append the results into a single DataFrame
-search_output_combined = pd.concat([search_output_labor, search_output_employment, search_output_wages],
-                                   ignore_index=True)
-print(search_output_combined)
-
-series_list = list(search_output_combined['id'])
+search_output_gdp = fred.search_brain("Real GDP", search_attributes, search_values)
+print(search_output_gdp)
+series_list = list(search_output_gdp['id'])
 relevant_info = ['title', 'frequency', 'units', 'popularity', 'notes']
 series_info_data = []
 for item in series_list:
@@ -44,8 +41,17 @@ for i, item in enumerate(series_list):
     else:
         print(f"No data available for series {item}.")
 
-print(all_data_observations)
+host = os.environ.get("host")
+user = os.environ.get("user")
+passwd = os.environ.get("passwd")
+db_name = "researchtestdb"
+tb_name = "test"
 
-# Assuming this method returns a DataFrame
-analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary of the key trends in this economic data.")
-print(analysis)
+db_manager = SQLBrain(host, user, passwd)
+db_manager.list_databases()  # List all databases
+db_manager.check_create_database(db_name)
+
+db_manager = SQLBrain(host, user, passwd, db_name=db_name)
+
+db_manager.fred_create_table_sql(df=all_data_observations, table_name="test")
+

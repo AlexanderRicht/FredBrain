@@ -568,3 +568,9 @@ class FredBrain:
         except Exception as e:  # General exception handling, consider specifying the exception
             print("An error occurred while querying the OpenAI API:", e)
             return None
+
+    def local_sql_insert(self, host, user, password):
+        try:
+            mydb = mysql.connector.connect(host="localhot", user="root", passwd="Research2024!")
+        except:
+            pass

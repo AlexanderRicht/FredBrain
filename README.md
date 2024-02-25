@@ -90,15 +90,28 @@ series_information = pd.DataFrame(series_info_data)
 | Average Hourly Earnings of All Employees, Priv... | The series comes from the 'Current Employment...                                           |
 | Federal Funds Effective Rate                       | Averages of daily figures. \n\nFor additional ...                                          |
 
-## Step 3: Extract the unrevised releases of data related to the series
-Based on the series `DataFrame` we extracted before, we will loop through the given series ID, add the metadata extracted previously, and store the unrevised observation for each series in a `DataFrame`. Why unrevised? Well, if we intend to model or use the data for any predictive purposes, using revised data would incorporate look-ahead bias. Therefore, we want to retain the observations as they were reported based on the information that was known at that given time
+## Step 3: Extract Unrevised Data Releases for Each Series
+After identifying the relevant series through the DataFrame we constructed earlier, our next step involves capturing the initial, unrevised observations for each series. This process enriches our dataset with critical metadata and preserves the authenticity of the data as it was first reported.
+
+### Why Focus on Unrevised Data?
+In applications such as economic modeling or predictive analysis, it's essential to mitigate any potential look-ahead bias. Look-ahead bias occurs when a model inadvertently uses information that was not available at the time of prediction, leading to overfitting and unrealistic performance estimates. By utilizing unrevised data, we ensure our analyses reflect the state of knowledge available at each observation's original reporting time, maintaining the integrity of our predictive efforts.
+## Implementation
+To compile our comprehensive dataset, we iterate over each series ID, retrieving the first unreleased data points along with their associated metadata. This metadata includes the series' title, frequency, and units, which are then appended to each observation, enhancing our dataset's usability and richness.
 ```sh
+import pandas as pd
+
+# Initialize an empty DataFrame to store all observations
 all_data_observations = pd.DataFrame()
+
 for i, item in enumerate(series_list):
+    # Retrieve the first unreleased observation for the current series
     data_observations = fred.retrieve_series_first_release(series_id=item)
+    # Extract and append additional metadata for each series
     data_website_url = fred.get_website_url(series_id=item)
     data_json_url = fred.get_json_url(series_id=item)
+
     if data_observations is not None:
+        # Incorporate series metadata into the observations DataFrame
         title = series_information.loc[i, 'title']
         frequency = series_information.loc[i, 'frequency']
         unit = series_information.loc[i, 'units']
@@ -107,14 +120,56 @@ for i, item in enumerate(series_list):
         data_observations['Units'] = unit
         data_observations['Website URL'] = data_website_url
         data_observations['JSON URL'] = data_json_url
+
+        # Append the current series' observations to the aggregate DataFrame
         if all_data_observations.empty:
             all_data_observations = data_observations
         else:
-            all_data_observations = all_data_observations._append(data_observations, ignore_index=True)
+            all_data_observations = pd.concat([all_data_observations, data_observations], ignore_index=True)
     else:
         print(f"No data available for series {item}.")
 ```
-## Step 4: Input the DataFrame into OpenAI (GPT-4) for insights
+## Step 4: Insert the DataFrame into a MySQL Database for seamless storage
+After preparing your `DataFrame` object with the desired FRED data, you can insert it into a local MySQL database for persistent storage. This step allows for the seamless integration of FRED data into your personal or organizational databases, facilitating easy access and analysis.
+
+### Preparing MySQL Connection
+Before inserting the data, you need to establish a connection with your MySQL server. Gather your MySQL Workbench credentials and determine whether you'll be connecting to an existing database or creating a new one.
+
+To connect to your MySQL database, you'll need the following information:
+host: The hostname or IP address of your MySQL server.
+user: Your MySQL username.
+passwd: Your MySQL password.
+db_name: The name of the database you wish to connect to or create.
+
+You can securely access your credentials using environment variables:
+```sh
+import os
+from SQLBrain import SQLBrain  # Ensure SQLBrain is correctly imported
+
+host = os.environ.get("MYSQL_HOST")
+user = os.environ.get("MYSQL_USER")
+passwd = os.environ.get("MYSQL_PASS")
+db_name = "researchtestdb"  # Example database name
+tb_name = "test"  # Example table name
+
+# Initialize the database manager and connect to MySQL
+db_manager = SQLBrain(host, user, passwd)
+db_manager.list_databases()  # Optional: List all existing databases to verify the connection
+db_manager.check_create_database(db_name)  # Create the database if it doesn't exist
+
+```
+### Inserting DataFrame into the Database
+After establishing a connection and ensuring the desired database is ready, you can proceed to insert your `DataFrame` into the database. Specify the table name where you want to store the data. If the table does not exist, it will be created based on the DataFrame structure.
+```sh
+# Reconnect specifying the database name to use for table operations
+db_manager = SQLBrain(host, user, passwd, db_name=db_name)
+
+# Create the table (if it doesn't exist) and insert the DataFrame data
+db_manager.fred_create_table_sql(df=all_data_observations, table_name=tb_name)
+
+```
+Congratulations! Your DataFrame is now stored in the specified MySQL database, making it accessible for future queries and analysis directly from SQL Workbench or any MySQL client.
+## Step 5: Input the DataFrame into OpenAI (GPT-4) for insights
 The `DataFrame` will be inputted into the chatgpt method and a prompt of your choosing can be tailored. This will result in an output given by chatgpt based on the prompt and data provided
 ```sh
 # Assuming this method returns a DataFrame
