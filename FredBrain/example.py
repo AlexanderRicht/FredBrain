@@ -2,7 +2,7 @@ from FredBrain import FredBrain
 #from config import FRED_API_KEY, OPENAI_API_KEY
 import pandas as pd
 
-fred = FredBrain(fred_api_key='948f94dc85df484f430ca2dfeeba39fe')
+fred = FredBrain(fred_api_key=KEY)
 
 search_attributes = ["popularity", "frequency"]
 search_values = [50, "Monthly"]
