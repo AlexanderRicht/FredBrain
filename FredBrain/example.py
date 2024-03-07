@@ -1,8 +1,10 @@
-from FredBrain import FredBrain
-#from config import FRED_API_KEY, OPENAI_API_KEY
+from __init__ import FredBrain
+import os
 import pandas as pd
 
-fred = FredBrain(fred_api_key='948f94dc85df484f430ca2dfeeba39fe')
+FRED_KEY = os.environ.get("fred_api_key")
+
+fred = FredBrain(fred_api_key=FRED_KEY)
 
 search_attributes = ["popularity", "frequency"]
 search_values = [50, "Monthly"]
@@ -47,5 +49,5 @@ for i, item in enumerate(series_list):
 print(all_data_observations)
 
 # Assuming this method returns a DataFrame
-analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary of the key trends in this economic data.")
-print(analysis)
+#analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary of the key trends in this economic data.")
+#print(analysis)

@@ -1,12 +1,11 @@
 from __init__ import FredBrain
-from SQLBrain import SQLBrain
+from MySQLBrain import MySQLBrain
 import pandas as pd
 import os
 
 FRED_KEY = os.environ.get("fred_api_key")
 
-fred = FredBrain(fred_api_key= FRED_KEY)
-
+fred = FredBrain(fred_api_key=FRED_KEY)
 search_attributes = ["frequency"]
 search_values = ["Monthly"]
 # Perform searches for different terms
@@ -41,17 +40,18 @@ for i, item in enumerate(series_list):
     else:
         print(f"No data available for series {item}.")
 
-host = os.environ.get("host")
-user = os.environ.get("user")
-passwd = os.environ.get("passwd")
-db_name = "researchtestdb"
-tb_name = "test"
+host = os.getenv("DATABASE_HOST")
+user = os.getenv("DATABASE_USERNAME")
+passwd = os.getenv("DATABASE_PASSWORD")
+db = os.getenv("DATABASE_NAME")
+ssl_verify_identity = True
+ssl_ca = "C:/ssl/certs/cacert.pem"
 
-db_manager = SQLBrain(host, user, passwd)
+db_manager = MySQLBrain(host, user, passwd, db_name=db, ssl_verify_identity=True, ssl_ca=ssl_ca)
+
+
+print(db_manager)
 db_manager.list_databases()  # List all databases
-db_manager.check_create_database(db_name)
-
-db_manager = SQLBrain(host, user, passwd, db_name=db_name)
+db_manager.check_create_database(db)
 
 db_manager.fred_create_table_sql(df=all_data_observations, table_name="test")
-

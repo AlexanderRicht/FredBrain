@@ -2,8 +2,8 @@ import mysql.connector
 from mysql.connector import Error
 
 
-class SQLBrain:
-    def __init__(self, host, user, passwd, db_name=None):
+class MySQLBrain:
+    def __init__(self, host, user, passwd, db_name=None, ssl_verify_identity=None, ssl_ca=None):
         """
         Initializes a new instance of the SQLBrain class.
 
@@ -23,6 +23,8 @@ class SQLBrain:
         self.user = user
         self.passwd = passwd
         self.db_name = db_name
+        self.ssl_verify_identity = ssl_verify_identity
+        self.ssl_ca = ssl_ca
         self.conn = None
         self.cursor = None
         self.connect()
@@ -44,7 +46,9 @@ class SQLBrain:
                 host=self.host,
                 user=self.user,
                 passwd=self.passwd,
-                database=self.db_name
+                database=self.db_name,
+                ssl_verify_identity=self.ssl_verify_identity,
+                ssl_ca=self.ssl_ca
             )
             if self.conn.is_connected():
                 self.cursor = self.conn.cursor()
@@ -141,7 +145,7 @@ class SQLBrain:
         """
         try:
             self.cursor.execute("SHOW TABLES")
-            tables = self.cursor.fetchall()
+            tables = self.cursor.fetchall(dictionary=True)
             print("List of tables:")
             for db in tables:
                 print(db[0])
