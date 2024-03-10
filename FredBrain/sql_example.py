@@ -1,14 +1,15 @@
-from __init__ import FredBrain
+from FredBrain import FredBrain
 from MySQLBrain import MySQLBrain
 import pandas as pd
 import os
+import hashlib
 
 FRED_KEY = os.environ.get("fred_api_key")
 
 fred = FredBrain(fred_api_key=FRED_KEY)
 search_attributes = ["frequency"]
 search_values = ["Monthly"]
-# Perform searches for different terms
+
 search_output_gdp = fred.search_brain("Real GDP", search_attributes, search_values)
 print(search_output_gdp)
 series_list = list(search_output_gdp['id'])
@@ -19,26 +20,36 @@ for item in series_list:
 series_information = pd.DataFrame(series_info_data)
 print(series_information)
 
-all_data_observations = pd.DataFrame()
+collected_first_releases = pd.DataFrame()
+collected_latest_releases = pd.DataFrame()
+collected_all_releases = pd.DataFrame()
+
 for i, item in enumerate(series_list):
-    data_observations = fred.retrieve_series_first_release(series_id=item)
-    data_website_url = fred.get_website_url(series_id=item)
-    data_json_url = fred.get_json_url(series_id=item)
-    if data_observations is not None:
+    first_release = fred.retrieve_series_first_release(series_id=item)
+    latest_release = fred.retrieve_series_latest_release(series_id=item)
+    all_releases = fred.retrieve_series_all_releases(series_id=item)
+    if first_release is not None:
+        data_website_url = fred.get_website_url(series_id=item)
+        data_json_url = fred.get_json_url(series_id=item)
         title = series_information.loc[i, 'title']
         frequency = series_information.loc[i, 'frequency']
         unit = series_information.loc[i, 'units']
-        data_observations['Category'] = title
-        data_observations['Frequency'] = frequency
-        data_observations['Units'] = unit
-        data_observations['Website URL'] = data_website_url
-        data_observations['JSON URL'] = data_json_url
-        if all_data_observations.empty:
-            all_data_observations = data_observations
-        else:
-            all_data_observations = all_data_observations._append(data_observations, ignore_index=True)
+        metadata = {
+            'Category': title,
+            'Frequency': frequency,
+            'Units': unit,
+            'Website URL': data_website_url,
+            'JSON URL': data_json_url
+        }
+        for df in [first_release, latest_release, all_releases]:
+            for key, value in metadata.items():
+                df[key] = value
+        collected_first_releases = pd.concat([collected_first_releases, first_release], ignore_index=True)
+        collected_latest_releases = pd.concat([collected_latest_releases, latest_release], ignore_index=True)
+        collected_all_releases = pd.concat([collected_all_releases, all_releases], ignore_index=True)
     else:
         print(f"No data available for series {item}.")
+
 
 host = os.getenv("DATABASE_HOST")
 user = os.getenv("DATABASE_USERNAME")
@@ -49,9 +60,16 @@ ssl_ca = "C:/ssl/certs/cacert.pem"
 
 db_manager = MySQLBrain(host, user, passwd, db_name=db, ssl_verify_identity=True, ssl_ca=ssl_ca)
 
+#
+# db_manager.list_databases()  # List all databases
+# db_manager.check_create_database(db)
+#
+db_manager.fred_create_table_sql(df=collected_first_releases, table_name="First Releases")
+db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="Latest Releases")
+db_manager.fred_create_table_sql(df=collected_all_releases, table_name="All Releases")
 
-print(db_manager)
-db_manager.list_databases()  # List all databases
-db_manager.check_create_database(db)
 
-db_manager.fred_create_table_sql(df=all_data_observations, table_name="test")
+
+# db_manager.close_connection()
+
+db_manager.insert_new_rows( df=collected_first_releases, table_name="test")

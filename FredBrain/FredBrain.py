@@ -4,6 +4,7 @@ from datetime import date
 import pandas as pd
 import requests
 import openai
+import hashlib
 
 
 class FredBrain:
@@ -287,7 +288,9 @@ class FredBrain:
                 series_info = data['seriess'][0]  # Get the first item from the list
                 # Filter out only the relevant info
                 filtered_info = {key: series_info[key] for key in relevant_info if key in series_info}
-                return pd.Series(filtered_info)
+                filtered_info = pd.Series(filtered_info)
+                filtered_info = filtered_info.astype(str)
+                return filtered_info
             except ValueError:
                 print("Response is not in JSON format.")
                 print("Response content:", response_api.text)
@@ -297,7 +300,7 @@ class FredBrain:
             print("Response content:", response_api.text)
             return None
 
-    def transform_series(self, response_api):
+    def transform_series(self, response_api, series_id):
         """
         Transforms an API response into a structured pandas DataFrame.
 
@@ -331,16 +334,24 @@ class FredBrain:
             observations = data['observations']
             df = pd.DataFrame(observations)
             # Convert 'date' column to datetime objects
+            df['realtime_start'] = pd.to_datetime(df['realtime_start'])
+            df['realtime_end'] = pd.to_datetime(df['realtime_end'])
             df['date'] = pd.to_datetime(df['date'])
             # Convert 'value' column to numeric, set errors='coerce' to handle any conversion issues
-            df['value'] = pd.to_numeric(df['value'], errors='coerce')
+            df['value'] = pd.to_numeric(df['value'], errors='coerce').astype(float).round(5)
+            df['series'] = str(series_id)
+            df['hash_key'] = (df['realtime_start'].astype(str) +
+                              df['date'].astype(str) +
+                              df['value'].astype(str) +
+                              df['series'].astype(str))
+            df['hash_key'] = df['hash_key'].apply(lambda x: hashlib.sha256(x.encode()).hexdigest())
             return df
         else:
             # If 'observations' key is not present, return an empty DataFrame
             print("'observations' key not found in the response.")
             return pd.DataFrame()
 
-    def retrieve_fred_series_data(self, series_id):
+    def retrieve_series_latest_release(self, series_id):
         """
             Retrieves time series data for a specified FRED series identifier.
 
@@ -381,7 +392,19 @@ class FredBrain:
         if response_api.status_code == 200:
             try:
                 # If response is successful, transform the response using the dedicated method
-                return self.transform_series(response_api)
+                df = self.transform_series(response_api, series_id)
+                # If df is not empty, proceed to extract the first release
+                if not df.empty:
+                    # Select only the relevant columns and rename them
+                    latest_release = df[['realtime_start', 'date', 'value', 'series', 'hash_key']]
+                    latest_release = latest_release.rename(columns={
+                        "realtime_start": "Published Date",
+                        "date": "Reporting Date",
+                        "value": "Value",
+                        "series": "Series",
+                        "hash_key": "Unique Key"
+                    })
+                    return latest_release
             except ValueError:
                 # Handle ValueError if the response is not in JSON format
                 print("Response is not in JSON format.")
@@ -423,7 +446,7 @@ class FredBrain:
         if response_api.status_code == 200:
             try:
                 # If the response is successful, transform and return the data
-                return self.transform_series(response_api)
+                return self.transform_series(response_api, series_id)
             except ValueError:
                 # Handle the case where the response is not in JSON format
                 print("Response is not in JSON format.")
@@ -463,13 +486,15 @@ class FredBrain:
         # If df is not empty, proceed to extract the first release
         if not df.empty:
             # Group by the observation date and take the first release for each group
-            first_release = df.groupby('date').first().reset_index()
+            first_release = df.groupby(['date']).first().reset_index()
             # Select only the relevant columns and rename them
-            first_release = first_release[['realtime_start', 'date', 'value']]
+            first_release = first_release[['realtime_start', 'date', 'value', 'series', 'hash_key']]
             first_release = first_release.rename(columns={
                 "realtime_start": "Published Date",
                 "date": "Reporting Date",
-                "value": "Value"
+                "value": "Value",
+                "series": "Series",
+                "hash_key": "Unique Key"
             })
             return first_release
         else:
@@ -478,7 +503,8 @@ class FredBrain:
             return df
 
     def get_website_url(self, series_id):
-        url = "%s/series/observations?series_id=%s&api_key=%s&file_type=json" % (self.root_url, series_id, self.fred_api_key)
+        url = "%s/series/observations?series_id=%s&api_key=%s&file_type=json" % (
+        self.root_url, series_id, self.fred_api_key)
         url_website = "https://fred.stlouisfed.org/series/%s" % series_id
         response_api = requests.get(url)
         if response_api.status_code == 200:
@@ -559,7 +585,8 @@ class FredBrain:
             response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",  # Or another model version
                 messages=[
-                    {"role": "system", "content": "You are an expert level economist trained to analyze and present conclusions based on economic and financial data."},
+                    {"role": "system",
+                     "content": "You are an expert level economist trained to analyze and present conclusions based on economic and financial data."},
                     {"role": "user", "content": f"{question}\n\n{data_summary}"}
                 ]
             )

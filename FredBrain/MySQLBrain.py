@@ -1,5 +1,7 @@
 import mysql.connector
+import pandas as pd
 from mysql.connector import Error
+import time
 
 
 class MySQLBrain:
@@ -260,7 +262,10 @@ class MySQLBrain:
            schema matches the structure of the DataFrame, facilitating seamless data storage.
         """
         df_datatype = df.dtypes
-        columns_with_types = []
+        columns_with_types = [
+            "`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
+            "`sql_upload_datetime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        ]
         columns_with_headers = []
         for index, value in df_datatype.items():
             if str(value).startswith('int'):
@@ -271,15 +276,93 @@ class MySQLBrain:
                 sqldtype = 'BOOLEAN'
             elif str(value).startswith('datetime'):
                 sqldtype = 'DATETIME'
+            elif str(value).startswith('date'):
+                sqldtype = 'DATE'
             else:
                 sqldtype = 'VARCHAR(250)'
             columns_with_types.append(f"`{index}` {sqldtype}")
             columns_with_headers.append(f"{index}")
         columns_type_sql = ', '.join(columns_with_types)
-        print(columns_with_types)
         if self.check_table_exists(table_name) is False:
+            print(f"SQL Statement:\nCREATE TABLE IF NOT EXISTS `{table_name}` ({columns_type_sql})")
             self.cursor.execute(f"CREATE TABLE IF NOT EXISTS `{table_name}` ({columns_type_sql})")
             print(f"Table '{table_name}' created successfully.")
             self.fred_insert_into_table(table_name, df)
         else:
             print(f"Table '{table_name}' already exists.")
+
+    def insert_new_rows(self, df, table_name):
+        """
+          Inserts new rows into a specified table in the MySQL database, avoiding duplicates.
+
+          This method performs an incremental load by appending new rows from the provided pandas DataFrame to the
+          specified table. It first retrieves existing data from the table to identify rows in the DataFrame that are
+          not already present. Only unique new rows, identified by a 'hash_key' column in the DataFrame, are
+          inserted into the table, ensuring no duplicates are added.
+
+          Parameters:
+          - table_name (str): The name of the table into which the new rows will be inserted.
+          - df (pandas.DataFrame): A DataFrame containing the new rows to insert. The DataFrame must include a 'hash_key'
+            column, which serves as a unique identifier for each row. This 'hash_key' should be generated using a
+            consistent hashing method to ensure uniqueness.
+
+          Outputs:
+          - Console output indicating the success of the operation, including the number of rows inserted.
+
+          Exceptions:
+          - Prints any MySQL-related errors encountered during the operation.
+
+          Usage Example:
+          - db_manager.insert_new_rows('example_table', new_rows_dataframe)
+
+          Note:
+          - The 'hash_key' column in the DataFrame is crucial for identifying unique rows. This unique identifier should
+            be generated using the method described in 'transform_series', combining specific row data into a SHA-256 hash.
+            The presence of this column ensures that the method can effectively prevent duplicate entries in the database
+            by performing an incremental load.
+          """
+        column_names = ', '.join([f"`{column}`" for column in df.columns])
+        existing_data_query = f"SELECT {column_names} FROM `{table_name}`"
+        print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")
+        self.cursor.execute(existing_data_query)
+        existing_rows = self.cursor.fetchall()
+        existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
+        print(existing_df)
+        time.sleep(5)
+        unique_to_insert = (
+            df
+            .merge(existing_df[['Unique Key']], on="Unique Key", how='left', indicator=True)
+            .loc[lambda x: x['_merge'] == 'left_only']
+        )
+        unique_to_insert = unique_to_insert.drop(columns=['_merge'])
+
+        column_names = ', '.join([f"`{column}`" for column in unique_to_insert.columns])
+        placeholders = ', '.join(['%s' for _ in unique_to_insert.columns])
+        sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
+        print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
+        if not unique_to_insert.empty:
+            data_to_insert = [tuple(row) for row in unique_to_insert.values]
+            row_count = len(data_to_insert)
+            self.cursor.executemany(sql_insert_statement, data_to_insert)
+            self.conn.commit()
+            print(f"{row_count} rows inserted successfully into '{table_name}'.")
+        else:
+            print("No new unique rows to insert.")
+
+    def close_connection(self):
+        """
+        Closes the connection to the MySQL server.
+
+        This method closes the cursor and connection to the MySQL server, releasing any resources
+        associated with the connection. It should be called when the database operations are complete
+        to ensure that the connection is properly closed.
+
+        Usage Example:
+        db_manager.close_connection()
+        """
+        if self.conn.is_connected():
+            self.cursor.close()
+            self.conn.close()
+            print("MySQL database connection closed.")
+        else:
+            print("No active MySQL database connection to close.")
