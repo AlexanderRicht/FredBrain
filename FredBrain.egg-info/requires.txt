@@ -1,6 +1,5 @@
 requests
 pandas
 datetime
-MySQL Connector
-os
+mysql.connector
 openai

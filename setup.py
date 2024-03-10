@@ -24,7 +24,7 @@ setup(
         "Topic :: Utilities",
     ],
     python_requires=">=3.10",
-    install_requires=["requests", "pandas", "datetime", "openai"],
+    install_requires=["requests", "pandas", "datetime", "mysql.connector", "openai"],
     packages=find_packages(),
     include_package_data=True
 )

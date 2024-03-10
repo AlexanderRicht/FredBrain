@@ -1,4 +1,5 @@
 graft FredBrain
+graft MySQLBrain
 include pyproject.toml
 include setup.py
 global-exclude *py[cod]

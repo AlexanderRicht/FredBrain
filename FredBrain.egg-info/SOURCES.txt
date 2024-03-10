@@ -3,8 +3,10 @@ MANIFEST.in
 README.md
 pyproject.toml
 setup.py
-FredBrain/__init__.py
+FredBrain/FredBrain.py
+FredBrain/MySQLBrain.py
 FredBrain/example.py
+FredBrain/sql_example.py
 FredBrain.egg-info/PKG-INFO
 FredBrain.egg-info/SOURCES.txt
 FredBrain.egg-info/dependency_links.txt
