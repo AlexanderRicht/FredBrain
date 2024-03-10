@@ -1,5 +1,6 @@
 import mysql.connector
 import pandas as pd
+import numpy as np
 from mysql.connector import Error
 import time
 
@@ -212,18 +213,24 @@ class MySQLBrain:
         Usage Example:
         db_manager.fred_insert_into_table('example_table', dataframe)
         """
-        # Convert DataFrame columns to a list of column names, wrapped in backticks
+        # Convert DataFrame columns to a list of column names, wrapped in
         column_names = ', '.join([f"`{column}`" for column in df.columns])
         # Create placeholders for the values
         placeholders = ', '.join(['%s' for _ in df.columns])
         sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
+        print(f"SQL Statement - Insert Rows:\n {sql_insert_statement}")
         # Prepare data for insertion
-        data_to_insert = [tuple(row) for row in df.values]
+        data_to_insert = []
+        for row in df.values:
+            # Replace np.nan with None in the row
+            clean_row = [None if pd.isna(value) else value for value in row]
+            data_to_insert.append(tuple(clean_row))
+        row_count = len(data_to_insert)
         try:
             # Use executemany to insert data in batches
             self.cursor.executemany(sql_insert_statement, data_to_insert)
             self.conn.commit()  # Commit the transaction
-            print(f"Data inserted successfully into '{table_name}'.")
+            print(f"{row_count} rows inserted successfully into '{table_name}'.")
         except Error as e:
             print(f"Failed to insert data into table '{table_name}': {e}")
 
@@ -284,7 +291,7 @@ class MySQLBrain:
             columns_with_headers.append(f"{index}")
         columns_type_sql = ', '.join(columns_with_types)
         if self.check_table_exists(table_name) is False:
-            print(f"SQL Statement:\nCREATE TABLE IF NOT EXISTS `{table_name}` ({columns_type_sql})")
+            print(f"SQL Statement - Create Table:\nCREATE TABLE IF NOT EXISTS `{table_name}` ({columns_type_sql})")
             self.cursor.execute(f"CREATE TABLE IF NOT EXISTS `{table_name}` ({columns_type_sql})")
             print(f"Table '{table_name}' created successfully.")
             self.fred_insert_into_table(table_name, df)
@@ -341,7 +348,11 @@ class MySQLBrain:
         sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
         print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
         if not unique_to_insert.empty:
-            data_to_insert = [tuple(row) for row in unique_to_insert.values]
+            data_to_insert = []
+            for row in df.values:
+                # Replace np.nan with None in the row
+                clean_row = [None if pd.isna(value) else value for value in row]
+                data_to_insert.append(tuple(clean_row))
             row_count = len(data_to_insert)
             self.cursor.executemany(sql_insert_statement, data_to_insert)
             self.conn.commit()

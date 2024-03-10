@@ -2,7 +2,6 @@ from FredBrain import FredBrain
 from MySQLBrain import MySQLBrain
 import pandas as pd
 import os
-import hashlib
 
 FRED_KEY = os.environ.get("fred_api_key")
 
@@ -10,7 +9,7 @@ fred = FredBrain(fred_api_key=FRED_KEY)
 search_attributes = ["frequency"]
 search_values = ["Monthly"]
 
-search_output_gdp = fred.search_brain("Real GDP", search_attributes, search_values)
+search_output_gdp = fred.search_brain("UNRATE", search_attributes, search_values)
 print(search_output_gdp)
 series_list = list(search_output_gdp['id'])
 relevant_info = ['title', 'frequency', 'units', 'popularity', 'notes']
@@ -55,21 +54,20 @@ host = os.getenv("DATABASE_HOST")
 user = os.getenv("DATABASE_USERNAME")
 passwd = os.getenv("DATABASE_PASSWORD")
 db = os.getenv("DATABASE_NAME")
-ssl_verify_identity = True
-ssl_ca = "C:/ssl/certs/cacert.pem"
 
-db_manager = MySQLBrain(host, user, passwd, db_name=db, ssl_verify_identity=True, ssl_ca=ssl_ca)
+
+db_manager = MySQLBrain(host, user, passwd, db_name=db)
 
 #
 # db_manager.list_databases()  # List all databases
 # db_manager.check_create_database(db)
 #
-db_manager.fred_create_table_sql(df=collected_first_releases, table_name="First Releases")
-db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="Latest Releases")
-db_manager.fred_create_table_sql(df=collected_all_releases, table_name="All Releases")
+db_manager.fred_create_table_sql(df=collected_first_releases, table_name="test1")
+db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="test2")
+db_manager.fred_create_table_sql(df=collected_all_releases, table_name="test3")
 
 
 
-# db_manager.close_connection()
+db_manager.close_connection()
 
-db_manager.insert_new_rows( df=collected_first_releases, table_name="test")
+# db_manager.insert_new_rows( df=collected_first_releases, table_name="test")
