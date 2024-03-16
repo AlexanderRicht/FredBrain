@@ -5,13 +5,26 @@ import pandas as pd
 import requests
 import openai
 import hashlib
+from RateLimit import RateLimitDecorator
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+
+
+def check_rate_limit(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        limit = response.headers.get('x-rate-limit-limit')
+        remaining = response.headers.get('x-rate-limit-remaining')
+        print(f"Rate Limit: {limit}, Remaining: {remaining}")
+    else:
+        print("Failed to fetch data:", response.status_code)
 
 
 class FredBrain:
     earliest_realtime_start = '1776-07-04'
     latest_realtime_end = date.today()
     nan_char = '.'
-    max_results_per_request = 1000
+    calls_per_minute = 100
     root_url = 'https://api.stlouisfed.org/fred'
 
     def __init__(self, fred_api_key=None, openai_api_key=None):
@@ -38,6 +51,7 @@ class FredBrain:
         self.openai_api_key = openai_api_key or os.environ.get('OPENAI_API_KEY')
         openai.api_key = self.openai_api_key
 
+    @RateLimitDecorator(calls=calls_per_minute)
     def search_brain(self, search_text, filter_attributes=None, filter_values=None):
         """
         Searches for FRED series based on a given search text and applies optional filtering based on specified criteria.
@@ -107,12 +121,10 @@ class FredBrain:
                             df = df[df[attribute] >= value]
                 # Return the dataframe with or without filters applied
                 return df
-
             except ValueError as e:
                 print("Response is not in JSON format.")
                 print("Response content:", response.text)
                 return None
-
         else:
             print(f"Failed to fetch data. Status code: {response.status_code}")
             print("Response content:", response.text)
@@ -238,9 +250,32 @@ class FredBrain:
             print("No series data collected.")
             return pd.DataFrame()
 
-    def fetch_series_info(self, series_id, relevant_info):
+    @RateLimitDecorator(calls=calls_per_minute)
+    def fetch_single_series_info(self, series_id, relevant_info):
         """
-        Fetches and returns detailed information for a specific FRED series ID as a pandas Series, based on a list of relevant information fields specified by the user. This method leverages the FRED API to access and extract series metadata, which is particularly useful for augmenting data analysis, populating DataFrame columns, adjusting column headers, or for export purposes.
+        Fetch that is leveraged by the fetch_series_info method to execute concurrent requests for
+        series information by using the ThreadPoolExecutor for synchronous requests.
+        """
+        url = f"{self.root_url}/series?series_id={series_id}&api_key={self.fred_api_key}&file_type=json"
+        try:
+            response_api = requests.get(url)
+            if response_api.status_code == 200:
+                data = response_api.json()
+                series_info = data['seriess'][0]  # Get the first item from the list
+                filtered_info = {key: series_info[key] for key in relevant_info if key in series_info}
+                return pd.Series(filtered_info).astype(str)
+            else:
+                print(f"Failed to fetch {series_id}: Status {response_api.status_code}")
+                return pd.Series({"error": f"HTTP Status {response_api.status_code}"})
+        except Exception as e:
+            print(f"Exception while fetching {series_id}: {str(e)}")
+            return pd.Series({"error": str(e)})
+
+    def fetch_series_info(self, series_ids, relevant_info):
+        """
+        Fetches and returns detailed information for a list of FRED series IDs, filtering the results based on a list of relevant information fields specified by the user. This method leverages the FRED API to access and extract series metadata. It utilizes concurrent threads to efficiently manage multiple synchronous API requests, enhancing the speed of data retrieval and processing. This concurrency is particularly useful for augmenting data analysis, populating DataFrame columns, adjusting column headers, or for export purposes.
+
+        The method uses Python's `concurrent.futures.ThreadPoolExecutor` to manage a pool of threads, each of which handles a request for series information. This approach allows for significant performance improvements when fetching data for multiple series IDs concurrently compared to sequential requests.
 
         Parameters:
         - series_id (str): The unique identifier for the FRED series from which information is to be retrieved.
@@ -253,52 +288,40 @@ class FredBrain:
         - ValueError: Thrown when the API response is not in JSON format, indicating a failure to fetch or parse the requested data.
 
         Example Usage:
-        This example demonstrates how to use the `fetch_series_info` method to retrieve and compile metadata for a list of series IDs. It showcases how to gather series information, retrieve series observations, and compile this data into a comprehensive DataFrame.
+        This example demonstrates how to use the `fetch_series_info` method to retrieve and compile  metadata for a list of series IDs. It showcases the efficiency gains from using concurrent threads to gather series information and compiling it into a comprehensive DataFrame.
 
         import pandas as pd
-        from FredBrain import FredBrain
+        from your_module import YourClass # Assuming YourClass contains these methods
 
         API_KEY = 'your_api_key_here'
-        fred = FredBrain(api_key=API_KEY)
+        fred = YourClass(api_key=API_KEY)
 
-        # Define the relevant information fields to retrieve
         relevant_info = ['title', 'frequency', 'units', 'popularity', 'notes']
+        series_ids = ['UNRATE', 'GDP']  # Example series IDs
 
-        # Example: Fetch information for a specific category and its series
-        get_category = fred.get_categories_range(9)  # Example category ID
-        series_start_range = get_category['id'].min()
-        get_related_series = fred.get_series_from_category(series_start_range)
+        series_information = fred.fetch_series_info(series_ids, relevant_info)
+        print(series_information)
 
-        # Collect series information and observations
-        series_info_data = []
-        for item in get_related_series['id']:
-            series_info = fred.fetch_series_info(series_id=item, relevant_info=relevant_info)
-            series_info_data.append(series_info)
-        series_information = pd.DataFrame(series_info_data)
-
-        Note: Ensure your API_KEY is correctly set to use this example effectively. This approach is scalable for multiple series IDs, allowing for extensive data collection and analysis from the FRED database.
+        Note: Ensure your API_KEY is correctly set to use this example effectively. This approach is scalable for
+        multiple series IDs, allowing for extensive data collection and analysis from the FRED database.
         """
-        url = f"{self.root_url}/series?series_id={series_id}&api_key={self.fred_api_key}&file_type=json"
-        response_api = requests.get(url)
-        if response_api.status_code == 200:
-            try:
-                # Parse JSON response
-                data = response_api.json()
-                # The information you want is under the 'seriess' key, which is a list of dictionaries
-                series_info = data['seriess'][0]  # Get the first item from the list
-                # Filter out only the relevant info
-                filtered_info = {key: series_info[key] for key in relevant_info if key in series_info}
-                filtered_info = pd.Series(filtered_info)
-                filtered_info = filtered_info.astype(str)
-                return filtered_info
-            except ValueError:
-                print("Response is not in JSON format.")
-                print("Response content:", response_api.text)
-                return None
-        else:
-            print(f"Failed to fetch data. Status code: {response_api.status_code}")
-            print("Response content:", response_api.text)
-            return None
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_series_id = {executor.submit(self.fetch_single_series_info, series_id, relevant_info): series_id
+                                   for series_id in series_ids}
+            for future in concurrent.futures.as_completed(future_to_series_id):
+                series_id = future_to_series_id[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results.append(data)
+                    if "error" not in data:
+                        print(f"Series ID {series_id} fetched successfully.")
+                    else:
+                        print(f"Error fetching series ID {series_id}: {data['error']}")
+                except Exception as exc:
+                    print(f"Series ID {series_id} generated an exception: {exc}")
+        return pd.DataFrame(results)
 
     def transform_series(self, response_api, series_id):
         """
@@ -351,7 +374,8 @@ class FredBrain:
             print("'observations' key not found in the response.")
             return pd.DataFrame()
 
-    def retrieve_series_latest_release(self, series_id):
+    @RateLimitDecorator(calls=calls_per_minute)
+    def retrieve_single_series_latest_release(self, series_id):
         """
             Retrieves time series data for a specified FRED series identifier.
 
@@ -386,16 +410,11 @@ class FredBrain:
             """
         # Construct the URL for the API call
         url = f"{self.root_url}/series/observations?series_id={series_id}&api_key={self.fred_api_key}&file_type=json"
-        # Make the API call
         response_api = requests.get(url)
-        # Check if the response status code is 200 (OK)
         if response_api.status_code == 200:
             try:
-                # If response is successful, transform the response using the dedicated method
                 df = self.transform_series(response_api, series_id)
-                # If df is not empty, proceed to extract the first release
                 if not df.empty:
-                    # Select only the relevant columns and rename them
                     latest_release = df[['realtime_start', 'date', 'value', 'series', 'hash_key']]
                     latest_release = latest_release.rename(columns={
                         "realtime_start": "Published Date",
@@ -406,17 +425,36 @@ class FredBrain:
                     })
                     return latest_release
             except ValueError:
-                # Handle ValueError if the response is not in JSON format
                 print("Response is not in JSON format.")
                 print("Response content:", response_api.text)
                 return None
         else:
-            # If the response status code is not 200, print an error message
             print(f"Failed to fetch data. Status code: {response_api.status_code}")
             print("Response content:", response_api.text)
             return None
 
-    def retrieve_series_all_releases(self, series_id, realtime_start=None, realtime_end=None):
+    def retrieve_series_latest_release(self, series_ids):
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_series_id = {executor.submit(self.retrieve_single_series_latest_release, series_id): series_id
+                                   for series_id in series_ids}
+            for future in concurrent.futures.as_completed(future_to_series_id):
+                series_id = future_to_series_id[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results.append(data)
+                    else:
+                        print(f'Error fetching series ID {series_id}: No data returned.')
+                except Exception as exc:
+                    print(f"Series ID {series_id} generated an exception: {exc}")
+        if results:
+            return pd.concat(results, ignore_index=True)
+        else:
+            return pd.DataFrame()
+
+    @RateLimitDecorator(calls=calls_per_minute)
+    def retrieve_single_series_all_releases(self, series_id, realtime_start=None, realtime_end=None):
         """
         Retrieves all historical data releases for a given FRED series ID, including initial releases and subsequent revisions.
 
@@ -440,25 +478,52 @@ class FredBrain:
         realtime_end = realtime_end or self.latest_realtime_end
         # Construct the URL for the API call
         url = f"{self.root_url}/series/observations?series_id={series_id}&realtime_start={realtime_start}&realtime_end={realtime_end}&api_key={self.fred_api_key}&file_type=json"
-        # Make the API call
         response_api = requests.get(url)
-        # Check if the response status code is 200 (OK)
         if response_api.status_code == 200:
             try:
-                # If the response is successful, transform and return the data
-                return self.transform_series(response_api, series_id)
+                df = self.transform_series(response_api, series_id)
+                if not df.empty:
+                    all_releases = df[['realtime_start', 'realtime_end', 'date', 'value', 'series', 'hash_key']]
+                    all_releases = all_releases.rename(columns={
+                        "realtime_start": "Published Date",
+                        "realtime_end": "Validity Date",
+                        "date": "Reporting Date",
+                        "value": "Value",
+                        "series": "Series",
+                        "hash_key": "Unique Key"
+                    })
+                    return all_releases
             except ValueError:
-                # Handle the case where the response is not in JSON format
                 print("Response is not in JSON format.")
                 print("Response content:", response_api.text)
                 return None
         else:
-            # If the response status code is not 200, print an error message
             print(f"Failed to fetch data. Status code: {response_api.status_code}")
             print("Response content:", response_api.text)
             return None
 
-    def retrieve_series_first_release(self, series_id):
+    def retrieve_series_all_releases(self, series_ids):
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_series_id = {executor.submit(self.retrieve_single_series_all_releases, series_id): series_id
+                                   for series_id in series_ids}
+            for future in concurrent.futures.as_completed(future_to_series_id):
+                series_id = future_to_series_id[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results.append(data)
+                    else:
+                        print(f"Error fetching series ID {series_id}: No data returned.")
+                except Exception as exc:
+                    print(f"Series ID {series_id} generated an exception: {exc}")
+        if results:
+            return pd.concat(results, ignore_index=True)
+        else:
+            return pd.DataFrame()
+
+    @RateLimitDecorator(calls=calls_per_minute)
+    def retrieve_single_series_first_release(self, series_id):
         """
         Retrieves the initial release data for a specified FRED series ID, focusing exclusively on the data as it was first published, and excluding any subsequent revisions. This method is particularly useful for analyses that require understanding the initial impact of economic indicators before any revisions are made, allowing for a comparison between initial estimates and later revised data.
 
@@ -482,29 +547,43 @@ class FredBrain:
         - This approach is particularly valuable in research contexts where the initial reaction to economic indicators is of interest, allowing for a nuanced understanding of economic dynamics as perceived at different points in time.
         """
         # Retrieve all releases for the series
-        df = self.retrieve_series_all_releases(series_id)
+        df = self.retrieve_single_series_all_releases(series_id)
         # If df is not empty, proceed to extract the first release
         if not df.empty:
             # Group by the observation date and take the first release for each group
-            first_release = df.groupby(['date']).first().reset_index()
+            first_release = df.groupby(['Reporting Date']).first().reset_index()
             # Select only the relevant columns and rename them
-            first_release = first_release[['realtime_start', 'date', 'value', 'series', 'hash_key']]
-            first_release = first_release.rename(columns={
-                "realtime_start": "Published Date",
-                "date": "Reporting Date",
-                "value": "Value",
-                "series": "Series",
-                "hash_key": "Unique Key"
-            })
+            first_release = first_release[['Published Date', 'Reporting Date', 'Value', 'Series', 'Unique Key']]
             return first_release
         else:
             # If the DataFrame is empty, return it as is or handle the case as appropriate
             print(f"No data available for series {series_id}.")
             return df
 
-    def get_website_url(self, series_id):
+    def retrieve_series_first_release(self, series_ids):
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_series_id = {executor.submit(self.retrieve_single_series_first_release, series_id): series_id
+                                   for series_id in series_ids}
+            for future in concurrent.futures.as_completed(future_to_series_id):
+                series_id = future_to_series_id[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results.append(data)
+                    else:
+                        print(f"Error fetching series ID {series_id}: No data returned.")
+                except Exception as exc:
+                    print(f"Series ID {series_id} generated an exception: {exc}")
+        if results:
+            return pd.concat(results, ignore_index=True)
+        else:
+            return pd.DataFrame()
+
+    @RateLimitDecorator(calls=calls_per_minute)
+    def get_single_website_url(self, series_id):
         url = "%s/series/observations?series_id=%s&api_key=%s&file_type=json" % (
-        self.root_url, series_id, self.fred_api_key)
+            self.root_url, series_id, self.fred_api_key)
         url_website = "https://fred.stlouisfed.org/series/%s" % series_id
         response_api = requests.get(url)
         if response_api.status_code == 200:
@@ -518,6 +597,26 @@ class FredBrain:
             print(f"Failed to fetch data. Status code: {response_api.status_code}")
             print("Response content:", response_api.text)
             return None
+
+    def get_website_url(self, series_ids):
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_series_id = {executor.submit(self.get_single_website_url, series_id): series_id
+                                   for series_id in series_ids}
+            for future in concurrent.futures.as_completed(future_to_series_id):
+                series_id = future_to_series_id[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        results.append(data)
+                    else:
+                        print(f"Error fetching series ID {series_id}: No data returned.")
+                except Exception as exc:
+                    print(f"Series ID {series_id} generated an exception: {exc}")
+        if results:
+            return pd.DataFrame(results, columns=['Website URL'])
+        else:
+            return pd.DataFrame(columns=['Website URL'])
 
     def get_json_url(self, series_id, realtime_start=None, realtime_end=None):
         if realtime_start is None:

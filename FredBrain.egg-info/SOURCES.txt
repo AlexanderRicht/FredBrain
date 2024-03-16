@@ -7,7 +7,6 @@ FredBrain/FredBrain.py
 FredBrain/MySQLBrain.py
 FredBrain/example.py
 FredBrain/sql_example.py
-FredBrain/test.py
 FredBrain.egg-info/PKG-INFO
 FredBrain.egg-info/SOURCES.txt
 FredBrain.egg-info/dependency_links.txt
