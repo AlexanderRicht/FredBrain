@@ -24,7 +24,7 @@ class FredBrain:
     earliest_realtime_start = '1776-07-04'
     latest_realtime_end = date.today()
     nan_char = '.'
-    calls_per_minute = 100
+    calls_per_minute = 90
     root_url = 'https://api.stlouisfed.org/fred'
 
     def __init__(self, fred_api_key=None, openai_api_key=None):
@@ -377,45 +377,19 @@ class FredBrain:
     @RateLimitDecorator(calls=calls_per_minute)
     def retrieve_single_series_latest_release(self, series_id):
         """
-            Retrieves time series data for a specified FRED series identifier.
-
-            This method queries the FRED API to obtain observation data for the series specified by `series_id`. The
-            observations include dates and corresponding values, which are returned as a pandas DataFrame for ease of analysis
-            and manipulation. This function is essential for economic and financial analysis, allowing users to access a wide
-            range of economic data provided by the Federal Reserve Bank of St. Louis.
-
-            Parameters:
-            - series_id (str): The unique identifier for the FRED series from which to retrieve observation data. Example
-              series IDs include 'GDP' for Gross Domestic Product, 'UNRATE' for Unemployment Rate, etc.
-
-            Returns:
-            - pandas.DataFrame: A DataFrame containing two columns, 'date' and 'value', representing the time series data of
-              the specified FRED series. Each row corresponds to an observation date and its associated value.
-
-            Raises:
-            - ValueError: If the API response is not in JSON format, indicating an issue with the request or the FRED API
-              service. This exception includes a message detailing the nature of the error and the content of the response.
-
-            Example Usage:
-                fred_api = FredAPI('your_api_key_here')
-                gdp_data = fred_api.retrieve_fred_series_data('GDP')
-                print(gdp_data.head())
-
-            Notes:
-            - The method ensures that the API response is in JSON format before attempting to parse it. If the response is
-              not in JSON format, or if the API call fails (e.g., due to an incorrect series ID or network issues), an
-              appropriate message is printed, and None is returned.
-            - Users should ensure that the provided `series_id` is valid and corresponds to a series available in the FRED
-              database. A list of valid series IDs can be found on the FRED website.
-            """
-        # Construct the URL for the API call
+        Retrieve that is leveraged by the retrieve_series_latest_release method to execute concurrent requests for
+        series information by using the ThreadPoolExecutor for synchronous requests.
+        """
         url = f"{self.root_url}/series/observations?series_id={series_id}&api_key={self.fred_api_key}&file_type=json"
+        url_website = "https://fred.stlouisfed.org/series/%s" % series_id
         response_api = requests.get(url)
         if response_api.status_code == 200:
             try:
                 df = self.transform_series(response_api, series_id)
                 if not df.empty:
-                    latest_release = df[['realtime_start', 'date', 'value', 'series', 'hash_key']]
+                    df['Website URL'] = url_website
+                    df['JSON URL'] = url
+                    latest_release = df[['realtime_start', 'date', 'value', 'series', 'hash_key', 'Website URL', 'JSON URL']]
                     latest_release = latest_release.rename(columns={
                         "realtime_start": "Published Date",
                         "date": "Reporting Date",
@@ -434,6 +408,29 @@ class FredBrain:
             return None
 
     def retrieve_series_latest_release(self, series_ids):
+        """
+             Retrieves the latest release/publication of time series data for a specified FRED series identifier. Leverages concurrent threads to efficiently manage multiple synchronous API requests, enhancing the speed of data retrieval and processing. This concurrency is particularly useful for augmenting data analysis, populating DataFrame columns, adjusting column headers, or for export purposes.
+
+             This method queries the FRED API to obtain observation data for the series specified by `series_id`. The observations include dates and corresponding values, which are returned as a pandas DataFrame for ease of analysis and manipulation. This function is essential for economic and financial analysis, allowing users to access a wide range of economic data provided by the Federal Reserve Bank of St. Louis.
+
+             Parameters:
+             - series_id (str): The unique identifier for the FRED series from which to retrieve observation data. Example series IDs include 'GDP' for Gross Domestic Product, 'UNRATE' for Unemployment Rate, etc.
+
+             Returns:
+             - pandas.DataFrame: A DataFrame containing two columns, 'date' and 'value', representing the time series data of the specified FRED series. Each row corresponds to an observation date and its associated value.
+
+             Raises:
+             - ValueError: If the API response is not in JSON format, indicating an issue with the request or the FRED API ervice. This exception includes a message detailing the nature of the error and the content of the response.
+
+             Example Usage:
+                 fred_api = FredAPI('your_api_key_here')
+                 gdp_data = fred_api.retrieve_fred_series_data('GDP')
+                 print(gdp_data.head())
+
+             Notes:
+             - The method ensures that the API response is in JSON format before attempting to parse it. If the response is not in JSON format, or if the API call fails (e.g., due to an incorrect series ID or network issues), an appropriate message is printed, and None is returned.
+             - Users should ensure that the provided `series_id` is valid and corresponds to a series available in the FRED database. A list of valid series IDs can be found on the FRED website.
+            """
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_series_id = {executor.submit(self.retrieve_single_series_latest_release, series_id): series_id
@@ -456,34 +453,21 @@ class FredBrain:
     @RateLimitDecorator(calls=calls_per_minute)
     def retrieve_single_series_all_releases(self, series_id, realtime_start=None, realtime_end=None):
         """
-        Retrieves all historical data releases for a given FRED series ID, including initial releases and subsequent revisions.
-
-        This method constructs a URL to query the FRED API for a given series ID, with optional parameters for the
-        start and end of the realtime period. It returns a DataFrame containing each release of the data point,
-        including the observation date, the date of release (realtime start), and the reported value.
-
-        Parameters:
-        - series_id (str): The FRED series ID for which to retrieve the data.
-        - realtime_start (str, optional): The start of the realtime period for which to retrieve data. Defaults to the earliest available data.
-        - realtime_end (str, optional): The end of the realtime period for which to retrieve data. Defaults to the latest available data.
-
-        Returns:
-        - pandas.DataFrame: A DataFrame with columns 'date', 'realtime_start', and 'value', where 'date' is the observation date and 'realtime_start'
-                            is the date when the corresponding value was first released or revised.
-
-        If the API call fails, or the response is not in JSON format, the method prints an error message and returns None.
+        Retrieve that is leveraged by the retrieve_series_all_releases method to execute concurrent requests for
+        series information by using the ThreadPoolExecutor for synchronous requests.
         """
-        # Set default realtime period if not specified
         realtime_start = realtime_start or self.earliest_realtime_start
         realtime_end = realtime_end or self.latest_realtime_end
-        # Construct the URL for the API call
         url = f"{self.root_url}/series/observations?series_id={series_id}&realtime_start={realtime_start}&realtime_end={realtime_end}&api_key={self.fred_api_key}&file_type=json"
+        url_website = "https://fred.stlouisfed.org/series/%s" % series_id
         response_api = requests.get(url)
         if response_api.status_code == 200:
             try:
                 df = self.transform_series(response_api, series_id)
                 if not df.empty:
-                    all_releases = df[['realtime_start', 'realtime_end', 'date', 'value', 'series', 'hash_key']]
+                    df['Website URL'] = url_website
+                    df['JSON URL'] = url
+                    all_releases = df[['realtime_start', 'realtime_end', 'date', 'value', 'series', 'hash_key', 'Website URL', 'JSON URL']]
                     all_releases = all_releases.rename(columns={
                         "realtime_start": "Published Date",
                         "realtime_end": "Validity Date",
@@ -503,6 +487,21 @@ class FredBrain:
             return None
 
     def retrieve_series_all_releases(self, series_ids):
+        """
+        Retrieves all historical data releases for a given FRED series ID, including initial releases and subsequent revisions. Leverages concurrent threads to efficiently manage multiple synchronous API requests, enhancing the speed of data retrieval and processing. This concurrency is particularly useful for augmenting data analysis, populating DataFrame columns, adjusting column headers, or for export purposes.
+
+        This method constructs a URL to query the FRED API for a given series ID, with optional parameters for the start and end of the realtime period. It returns a DataFrame containing each release of the data point, including the observation date, the date of release (realtime start), and the reported value.
+
+        Parameters:
+        - series_id (str): The FRED series ID for which to retrieve the data.
+        - realtime_start (str, optional): The start of the realtime period for which to retrieve data. Defaults to the earliest available data.
+        - realtime_end (str, optional): The end of the realtime period for which to retrieve data. Defaults to the latest available data.
+
+        Returns:
+        - pandas.DataFrame: A DataFrame with columns 'date', 'realtime_start', and 'value', where 'date' is the observation date and 'realtime_start' is the date when the corresponding value was first released or revised.
+
+        If the API call fails, or the response is not in JSON format, the method prints an error message and returns None.
+        """
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_series_id = {executor.submit(self.retrieve_single_series_all_releases, series_id): series_id
@@ -525,7 +524,26 @@ class FredBrain:
     @RateLimitDecorator(calls=calls_per_minute)
     def retrieve_single_series_first_release(self, series_id):
         """
+        Retrieve that is leveraged by the retrieve_series_first_releases method to execute concurrent requests for
+        series information by using the ThreadPoolExecutor for synchronous requests.
+        """
+        df = self.retrieve_single_series_all_releases(series_id)
+        if not df.empty:
+            # Group by the observation date and take the first release for each group
+            first_release = df.groupby(['Reporting Date']).first().reset_index()
+            # Select only the relevant columns and rename them
+            first_release = first_release[['Published Date', 'Reporting Date', 'Value', 'Series', 'Unique Key', 'Website URL', 'JSON URL']]
+            return first_release
+        else:
+            # If the DataFrame is empty, return it as is or handle the case as appropriate
+            print(f"No data available for series {series_id}.")
+            return df
+
+    def retrieve_series_first_release(self, series_ids):
+        """
         Retrieves the initial release data for a specified FRED series ID, focusing exclusively on the data as it was first published, and excluding any subsequent revisions. This method is particularly useful for analyses that require understanding the initial impact of economic indicators before any revisions are made, allowing for a comparison between initial estimates and later revised data.
+
+        Leverages concurrent threads to efficiently manage multiple synchronous API requests, enhancing the speed of data retrieval and processing. This concurrency is particularly useful for augmenting data analysis, populating DataFrame columns, adjusting column headers, or for export purposes.
 
         Utilizing the comprehensive data retrieval capabilities of the `retrieve_series_all_releases` method, this function filters the dataset to present only the first instance of each observation. This enables researchers, analysts, and enthusiasts to examine the initial figures reported for key economic indicators, such as GDP, inflation rates, or employment figures, offering insights into initial estimations versus revised figures.
 
@@ -546,21 +564,6 @@ class FredBrain:
         - The method assumes the availability of a comprehensive dataset for the specified series ID, spanning all releases. In scenarios where no data is available or the series ID is incorrect, the method will indicate the absence of data accordingly.
         - This approach is particularly valuable in research contexts where the initial reaction to economic indicators is of interest, allowing for a nuanced understanding of economic dynamics as perceived at different points in time.
         """
-        # Retrieve all releases for the series
-        df = self.retrieve_single_series_all_releases(series_id)
-        # If df is not empty, proceed to extract the first release
-        if not df.empty:
-            # Group by the observation date and take the first release for each group
-            first_release = df.groupby(['Reporting Date']).first().reset_index()
-            # Select only the relevant columns and rename them
-            first_release = first_release[['Published Date', 'Reporting Date', 'Value', 'Series', 'Unique Key']]
-            return first_release
-        else:
-            # If the DataFrame is empty, return it as is or handle the case as appropriate
-            print(f"No data available for series {series_id}.")
-            return df
-
-    def retrieve_series_first_release(self, series_ids):
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             future_to_series_id = {executor.submit(self.retrieve_single_series_first_release, series_id): series_id
@@ -589,56 +592,6 @@ class FredBrain:
         if response_api.status_code == 200:
             try:
                 return url_website
-            except ValueError:
-                print("Response is not in JSON format.")
-                print("Response content:", response_api.text)
-                return None
-        else:
-            print(f"Failed to fetch data. Status code: {response_api.status_code}")
-            print("Response content:", response_api.text)
-            return None
-
-    def get_website_url(self, series_ids):
-        results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_series_id = {executor.submit(self.get_single_website_url, series_id): series_id
-                                   for series_id in series_ids}
-            for future in concurrent.futures.as_completed(future_to_series_id):
-                series_id = future_to_series_id[future]
-                try:
-                    data = future.result()
-                    if data is not None:
-                        results.append(data)
-                    else:
-                        print(f"Error fetching series ID {series_id}: No data returned.")
-                except Exception as exc:
-                    print(f"Series ID {series_id} generated an exception: {exc}")
-        if results:
-            return pd.DataFrame(results, columns=['Website URL'])
-        else:
-            return pd.DataFrame(columns=['Website URL'])
-
-    def get_json_url(self, series_id, realtime_start=None, realtime_end=None):
-        if realtime_start is None:
-            realtime_start = self.earliest_realtime_start
-        if realtime_end is None:
-            realtime_end = self.latest_realtime_end
-        url_json_first_release = ("%s/series/observations?series_id=%s&realtime_start=%s&realtime_end=%s&api_key=%s"
-                                  "&file_type=json") % (
-                                     self.root_url,
-                                     series_id,
-                                     realtime_start,
-                                     realtime_end,
-                                     self.fred_api_key)
-        url_json = "%s/series/observations?series_id=%s&api_key=%s&file_type=json" % (
-            self.root_url, series_id, self.fred_api_key)
-        response_api = requests.get(url_json)
-        if response_api.status_code == 200:
-            try:
-                if self.retrieve_series_first_release:
-                    return url_json_first_release
-                else:
-                    return url_json
             except ValueError:
                 print("Response is not in JSON format.")
                 print("Response content:", response_api.text)

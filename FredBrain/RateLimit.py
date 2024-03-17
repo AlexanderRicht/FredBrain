@@ -45,11 +45,10 @@ class RateLimitDecorator:
             now = time.time()
             # If we have hit the limit and are within the reset period, sleep until the reset period is over
             if self.reset_time and now < self.reset_time:
-                sleep_time = self.reset_time - now
-                print(f"Rate limit exceeded. Sleeping for {sleep_time} seconds before putting workers back to work .")
-                time.sleep(sleep_time)
+                print(f"Rate limit exceeded. Sleeping for 60 seconds before putting worker back to work .")
+                time.sleep(60)
                 self.reset_time = None  # Reset the reset_time
-            if len(self.timing) >= self.calls:
+            if len(self.timing) > self.calls:
                 self.reset_time = now + self.period
                 self.timing.clear()  # Clear the timing list to start fresh after waiting
             else:

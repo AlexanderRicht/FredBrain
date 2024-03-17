@@ -1,6 +1,5 @@
 import mysql.connector
 import pandas as pd
-import numpy as np
 from mysql.connector import Error
 import time
 
@@ -190,7 +189,7 @@ class MySQLBrain:
             print(f"Failed to check table existence: {e}")
             return False
 
-    def fred_insert_into_table(self, table_name, df):
+    def fred_insert_into_table(self, table_name, df, chunk_size=10000):
         """
         Constructs and executes an INSERT INTO statement to batch insert data from a pandas DataFrame into
         a specified table.
@@ -213,26 +212,33 @@ class MySQLBrain:
         Usage Example:
         db_manager.fred_insert_into_table('example_table', dataframe)
         """
-        # Convert DataFrame columns to a list of column names, wrapped in
         column_names = ', '.join([f"`{column}`" for column in df.columns])
-        # Create placeholders for the values
         placeholders = ', '.join(['%s' for _ in df.columns])
         sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
         print(f"SQL Statement - Insert Rows:\n {sql_insert_statement}")
-        # Prepare data for insertion
-        data_to_insert = []
-        for row in df.values:
-            # Replace np.nan with None in the row
-            clean_row = [None if pd.isna(value) else value for value in row]
-            data_to_insert.append(tuple(clean_row))
-        row_count = len(data_to_insert)
-        try:
-            # Use executemany to insert data in batches
-            self.cursor.executemany(sql_insert_statement, data_to_insert)
-            self.conn.commit()  # Commit the transaction
-            print(f"{row_count} rows inserted successfully into '{table_name}'.")
-        except Error as e:
-            print(f"Failed to insert data into table '{table_name}': {e}")
+
+        total_rows_inserted = 0
+        for i in range(0, len(df), chunk_size):
+            chunk = df.iloc[i:i + chunk_size]
+            data_to_insert = [
+                tuple([None if pd.isna(value) else value for value in row])
+                for row in chunk.values
+            ]
+            try:
+                # Use executemany to insert data in batches
+                self.cursor.executemany(sql_insert_statement, data_to_insert)
+                self.conn.commit()  # Commit the transaction
+                rows_inserted = len(data_to_insert)
+                total_rows_inserted += rows_inserted
+                print(f"{rows_inserted} rows inserted successfully into '{table_name}'.")
+            except Error as e:
+                print(f"Failed to insert data into table '{table_name}': {e}")
+                break  # Optional: decide if you want to stop on error or continue with the next chunk
+            if total_rows_inserted == len(df):
+                print(
+                    f"All data inserted successfully into '{table_name}'. Total rows inserted: {total_rows_inserted}.")
+            else:
+                print(f"Inserted {total_rows_inserted} out of {len(df)} rows into '{table_name}'.")
 
     def fred_create_table_sql(self, df, table_name):
         """
@@ -270,7 +276,7 @@ class MySQLBrain:
         """
         df_datatype = df.dtypes
         columns_with_types = [
-            "`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
+            "`row_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "`sql_upload_datetime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         ]
         columns_with_headers = []
@@ -281,12 +287,12 @@ class MySQLBrain:
                 sqldtype = 'FLOAT'
             elif str(value).startswith('bool'):
                 sqldtype = 'BOOLEAN'
-            elif str(value).startswith('datetime'):
+            elif str(value).startswith('datetime') or str(value).startswith('datetime64'):
                 sqldtype = 'DATETIME'
             elif str(value).startswith('date'):
                 sqldtype = 'DATE'
             else:
-                sqldtype = 'VARCHAR(250)'
+                sqldtype = 'TEXT'
             columns_with_types.append(f"`{index}` {sqldtype}")
             columns_with_headers.append(f"{index}")
         columns_type_sql = ', '.join(columns_with_types)
@@ -298,7 +304,7 @@ class MySQLBrain:
         else:
             print(f"Table '{table_name}' already exists.")
 
-    def insert_new_rows(self, df, table_name):
+    def insert_new_rows(self, df, table_name, chunk_size=10000):
         """
           Inserts new rows into a specified table in the MySQL database, avoiding duplicates.
 
@@ -348,17 +354,28 @@ class MySQLBrain:
         sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
         print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
         if not unique_to_insert.empty:
-            data_to_insert = []
-            for row in df.values:
-                # Replace np.nan with None in the row
-                clean_row = [None if pd.isna(value) else value for value in row]
-                data_to_insert.append(tuple(clean_row))
-            row_count = len(data_to_insert)
-            self.cursor.executemany(sql_insert_statement, data_to_insert)
-            self.conn.commit()
-            print(f"{row_count} rows inserted successfully into '{table_name}'.")
-        else:
-            print("No new unique rows to insert.")
+            total_rows_inserted = 0
+            for i in range(0, len(df), chunk_size):
+                chunk = df.iloc[i:i + chunk_size]
+                data_to_insert = [
+                    tuple([None if pd.isna(value) else value for value in row])
+                    for row in chunk.values
+                ]
+                try:
+                    # Use executemany to insert data in batches
+                    self.cursor.executemany(sql_insert_statement, data_to_insert)
+                    self.conn.commit()  # Commit the transaction
+                    rows_inserted = len(data_to_insert)
+                    total_rows_inserted += rows_inserted
+                    print(f"{rows_inserted} rows inserted successfully into '{table_name}'.")
+                except Error as e:
+                    print(f"Failed to insert data into table '{table_name}': {e}")
+                    break  # Optional: decide if you want to stop on error or continue with the next chunk
+                if total_rows_inserted == len(df):
+                    print(
+                        f"All data inserted successfully into '{table_name}'. Total rows inserted: {total_rows_inserted}.")
+                else:
+                    print(f"Inserted {total_rows_inserted} out of {len(df)} rows into '{table_name}'.")
 
     def close_connection(self):
         """

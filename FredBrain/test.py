@@ -1,24 +1,21 @@
 import os
 import time
-import requests
+import mysql.connector
+from MySQLBrain import MySQLBrain
 
-# Assuming you have set these environment variables
-FRED_KEY = os.environ.get("fred_api_key")
-root_url = 'https://api.stlouisfed.org/fred'
-series_id = 'UNRATE'
+import mysql.connector
+from mysql.connector import Error
 
-def check_rate_limit(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-        limit = response.headers.get('x-rate-limit-limit')
-        remaining = response.headers.get('x-rate-limit-remaining')
-        print(f"Rate Limit: {limit}, Remaining: {remaining}")
-        return int(limit), int(remaining)
-    else:
-        print("Failed to fetch data:", response.status_code)
+host = os.getenv("DATABASE_HOST")
+user = os.getenv("DATABASE_USERNAME")
+passwd = os.getenv("DATABASE_PASSWORD")
+db = os.getenv("DATABASE_NAME")
 
-url = f"{root_url}/series?series_id={series_id}&api_key={FRED_KEY}&file_type=json"
 
-url = f"{root_url}/series?series_id={series_id}&api_key={FRED_KEY}&file_type=json"
-Calls_Used = check_rate_limit(url) - 1
-print(Calls_Used)
+try:
+    print("Connecting to the database...")
+    db_manager = MySQLBrain(host, user, passwd, db_name=db)
+    db_manager.list_databases()  # List all databases
+    print("Connected:", db_manager)
+except Error as e:
+    print("Error while connecting to MySQL", e)

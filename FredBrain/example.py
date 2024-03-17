@@ -1,7 +1,10 @@
+import time
 from FredBrain import FredBrain
 from MySQLBrain import MySQLBrain
 import os
 import pandas as pd
+from mysql.connector import Error
+
 
 FRED_KEY = os.environ.get("fred_api_key")
 OPENAI_KEY = os.environ.get("openai_api_key")
@@ -16,65 +19,58 @@ search_output_wages = fred.search_brain("Wages", search_attributes, search_value
 search_output_combined = pd.concat([search_output_labor, search_output_employment, search_output_wages],
                                    ignore_index=True)
 
-series_list = list(search_output_labor['id'])
-print(series_list)
+series_list = list(search_output_combined['id'])
 print(len(series_list))
-relevant_info = ['title', 'frequency', 'units', 'popularity', 'notes']
 
-# series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
-# series_information = pd.DataFrame(series_info_data)
-# print(series_information)
-
-# collected_latest_releases = fred.retrieve_series_latest_release(series_ids=series_list)
-# collected_latest_releases.to_excel("latest_releases.xlsx")
-# collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
-# collected_all_releases.to_excel("all_releases.xlsx")
+# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+# time.sleep(60)
 # collected_first_releases = fred.retrieve_series_first_release(series_ids=series_list)
 # collected_first_releases.to_excel("first_releases.xlsx")
-data_website_url = fred.get_website_url(series_ids=series_list)
-print(data_website_url)
-
-
-#     if first_release is not None:
-#         data_website_url = fred.get_website_url(series_id=item)
-#         data_json_url = fred.get_json_url(series_id=item)
-#         title = series_information.loc[i, 'title']
-#         frequency = series_information.loc[i, 'frequency']
-#         unit = series_information.loc[i, 'units']
-#         metadata = {
-#             'Category': title,
-#             'Frequency': frequency,
-#             'Units': unit,
-#             'Website URL': data_website_url,
-#             'JSON URL': data_json_url
-#         }
-#         for df in [first_release, latest_release, all_releases]:
-#             for key, value in metadata.items():
-#                 df[key] = value
-#         collected_first_releases = pd.concat([collected_first_releases, first_release], ignore_index=True)
-#         collected_latest_releases = pd.concat([collected_latest_releases, latest_release], ignore_index=True)
-#         collected_all_releases = pd.concat([collected_all_releases, all_releases], ignore_index=True)
-#     else:
-#         print(f"No data available for series {item}.")
 #
-# collected_first_releases.to_excel("first_releases.xlsx")
+#
+# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+# time.sleep(60)
+# collected_latest_releases = fred.retrieve_series_latest_release(series_ids=series_list)
 # collected_latest_releases.to_excel("latest_releases.xlsx")
-# collected_all_releases.to_excel("all_releases.xlsx")
-# host = os.getenv("DATABASE_HOST")
-# user = os.getenv("DATABASE_USERNAME")
-# passwd = os.getenv("DATABASE_PASSWORD")
-# db = os.getenv("DATABASE_NAME")
 #
-# db_manager = MySQLBrain(host, user, passwd, db_name=db)
-# print(collected_first_releases.columns)
-# #
-# # db_manager.list_databases()  # List all databases
-# # db_manager.check_create_database(db)
-# #
-# #db_manager.fred_create_table_sql(df=collected_first_releases, table_name="UnrevisedReleases")
-# #db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="RevisedReleases")
-# #db_manager.fred_create_table_sql(df=collected_all_releases, table_name="AllReleaseVersion")
-# # db_manager.close_connection()
+#
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
+collected_all_releases.to_excel("all_releases.xlsx")
+
+
+
+# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as previous method was called.")
+# time.sleep(60)
+# relevant_info = ['id', "realtime_start", "realtime_end", 'title', 'frequency', 'units', "seasonal_adjustment", "last_updated", 'popularity', 'notes']
+# series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
+# series_information = pd.DataFrame(series_info_data)
+# series_information.to_excel("series_information.xlsx")
+
+
+host = os.getenv("DATABASE_HOST")
+user = os.getenv("DATABASE_USERNAME")
+passwd = os.getenv("DATABASE_PASSWORD")
+db = os.getenv("DATABASE_NAME")
+
+
+db_manager = MySQLBrain(host, user, passwd, db_name=db)
+
+try:
+    # db_manager.fred_create_table_sql(df=collected_first_releases, table_name="FirstReleases")
+    # db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="LatestReleases")
+    db_manager.fred_create_table_sql(df=collected_all_releases, table_name="AllReleases")
+    # db_manager.fred_create_table_sql(df=series_information, table_name="SeriesMetaData")
+    print("Connected:", db_manager)
+except Error as e:
+    print("Error while connecting to MySQL", e)
+
+
+# db_manager.fred_create_table_sql(df=collected_first_releases, table_name="UnrevisedReleases")
+# db_manager.fred_create_table_sql(df=collected_all_releases, table_name="AllReleaseVersion")
+
+db_manager.close_connection()
 #
 # db_manager.insert_new_rows( df=collected_first_releases, table_name="UnrevisedReleases")
 # db_manager.insert_new_rows( df=collected_latest_releases, table_name="RevisedReleases")
