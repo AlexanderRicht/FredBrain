@@ -5,8 +5,15 @@ pyproject.toml
 setup.py
 FredBrain/FredBrain.py
 FredBrain/MySQLBrain.py
+FredBrain/RateLimit.py
+FredBrain/all_releases.xlsx
 FredBrain/example.py
+FredBrain/first_releases.xlsx
+FredBrain/latest_releases.xlsx
+FredBrain/latest_releases2.xlsx
+FredBrain/series_information.xlsx
 FredBrain/sql_example.py
+FredBrain/test.py
 FredBrain.egg-info/PKG-INFO
 FredBrain.egg-info/SOURCES.txt
 FredBrain.egg-info/dependency_links.txt

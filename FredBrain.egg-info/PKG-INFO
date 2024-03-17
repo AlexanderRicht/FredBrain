@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: FredBrain
-Version: 0.5.0
+Version: 0.6.0
 Summary: A Python API for retrieving Federal Reserve Economic Data at Scale and feeding it to OpenAI
 Home-page: https://github.com/AlexanderRicht/FredBrain
 Author: Alexander Richt
@@ -54,32 +54,45 @@ Requires-Dist: openai
 5. [License](#license)
 6. [Contributing](#contributing)
 7. [Tutorial](#tutorial)
-   - [Step 1: Importing and Getting Our Initial DataFrame](#step-1-importing-and-getting-our-initial-dataframe-of-fred-series-ids)
-   - [Step 2: Retrieve Additional Metadata](#step-2-retrieve-additional-metadata-related)
-   - [Step 3: Extract Unrevised Data Releases](#step-3-extract-unrevised-data-releases-for-each-series)
-   - [Step 4: Insert DataFrame into MySQL](#step-4-insert-the-dataframe-into-a-mysql-database-for-seamless-storage)
-   - [Step 5: Insert New Data into Existing MySQL Table](#step-5-inserting-new-data-into-the-existing-mysql-table)
-   - [Step 6: Input DataFrame into OpenAI (GPT-4) for Insights](#step-6-input-the-dataframe-into-openai-gpt-4-for-insights)
-# FredBrain: A Python Package for retrieving Federal Reserve Economic Data at Scale and feeding it to OpenAI
+   - [Step 1: Importing and Initiating Preliminary Search for FRED Series IDs](#step-1-importing-and-initiating-preliminary-search-for-fred-series-ids)
+   - [Step 2: Search for Relevant Series IDs](#step-2-search-for-relevant-series-ids)
+   - [Step 3: Retrieve Additional Metadata](#step-3-retrieve-additional-metadata-related)
+   - [Step 4: Extract Unrevised, Revised and All Data Releases for Each Series](#step-4-extract-unrevised-revised-and-all-data-releases-for-each-series)
+   - [Step 5: Insert DataFrame into MySQL](#step-5-insert-the-dataframe-into-a-mysql-database-for-seamless-storage)
+   - [Step 6: Insert New Data into Existing MySQL Table](#step-6-inserting-new-data-into-the-existing-mysql-table)
+   - [Step 7: Input DataFrame into OpenAI (GPT-4) for Insights](#step-7-input-the-dataframe-into-openai-gpt-4-for-insights)
+# FredBrain: A Python Package for retrieving Federal Reserve Economic Data at Scale
 ## Introduction
-[FredBrain](https://pypi.org/project/FredBrain) is a Python package that offers a practical approach for accessing economic data from the Federal Reserve ([FRED API Documentation](https://fred.stlouisfed.org/docs/api/fred/)). It is built to assist those involved in economic research, financial analysis, and model development by providing a straightforward means of data retrieval and storage in a MySQL database. Additionally, it takes an experimental approach to integrating the OpenAI GPT framework into the class with the ultimate aim of creating an Ad-Hoc GPT economist expert to assist you in your analysis. Hence, why we refer to the class as `FredBrain`. The class itself will hopefully act as the Brain to power OpenAI Chat Completions. 
+[FredBrain](https://pypi.org/project/FredBrain) is a Python package that offers a practical approach for accessing economic data from the Federal Reserve ([FRED API Documentation](https://fred.stlouisfed.org/docs/api/fred/)).  It was created to offer a straightforward way for enthusiasts and professionals alike to access economic data from the Federal Reserve. This Python package simplifies the process of fetching, storing, and analyzing economic information, making it a valuable tool for anyone engaged in economic research, financial analysis, or model development. Additionally, it takes an experimental approach to integrating the OpenAI GPT framework into the class with the ultimate aim of creating an Ad-Hoc GPT economist expert to assist you in your analysis. Hence, why we refer to the class as `FredBrain`. The class itself will hopefully act as a catalyst to your retrieval of FRED data as well as the Brain to power OpenAI Chat Completions. 
 
-Utilizing familiar libraries such as `pandas`, `datetime`, `requests`, `MySQL Connector` and  `openai` FredBrain facilitates the transformation of JSON responses into user-friendly `DataFrame` objects. This process is designed to be intuitive, allowing users to focus more on their analysis, less on data wrangling and to leverage OpenAI chat for analysis support and conclusions.
+FredBrain brings several benefits to your workflow:
+- It facilitates easy access to a wealth of economic data via the FRED API, retrieving the data with asynchronous concurrent requests immensely improving the speed of data retrieval and then directly storing it into a MySQL database for further analysis.
+- The package experiments with integrating the OpenAI GPT framework, aiming to provide an ad-hoc GPT economist expert to support data interpretation and analysis.
+- By leveraging libraries like `pandas`, `datetime`, `requests`, `MySQL Connector`, `concurrent.futures`, `functools`, and `openai`, FredBrain transforms JSON responses into intuitive DataFrame objects, streamlining the data preparation phase of your projects.
 
 As FredBrain continues to develop, it seeks to maintain a balance between expanding its functionality and ensuring reliability. It strives to be a helpful resource for users who need to integrate economic data into their work, without being overwhelming or overly complex.
 
-FredBrain invites you to streamline the way you interact with economic data, opening up possibilities for more focused research and insightful analyses.
-## Features
-- Efficiently navigates through FRED's series data using single or multiple filters, enhancing the user's ability to pinpoint relevant datasets.
-- Streamlines the discovery and selection of economic variables by fetching extensive subsets of FRED categories and their associated series.
-- Equips users with tools to instantly convert series searches or category subsets into comprehensive datasets of original or revised time-series data.
-- Offers the flexibility to fetch time-series data for pre-determined sets of series or categories without additional search requirements.
-- Facilitates the extraction of metadata, preserving critical details about the time-series data for informed analysis.
-- Optimized for scalability, complying with the Federal Reserve's API request limits, enabling extensive data retrieval within the threshold of 1000 requests per minute
-- Provide Seamless MySQL Local or Cloud Database Insertion
-- *Integrating OpenAI to create an economist GPT for providing additional insights on data extracted via the FredBrain
+FredBrain invites you to streamline the way you interact with economic data, opening up possibilities for more focused research and insightful analyses by providing the functionality to retrieve FRED data at scale by leveraging concurrent futures, MySQL insertion and OpenAI integration.
+## Key Features of FredBrain
+
+FredBrain stands out with its robust features designed to enhance your experience in economic data analysis:
+
+- **Advanced Filtering and Navigation:** Effortlessly sift through FRED's vast array of series data with sophisticated filters, allowing for precise selection of datasets that matter most to your research.
   
-*This is experimental and not guaranteed to perform well. The ambition of myself and contributors would be to design a system that feeds data to a GPT to create an Economist GPT
+- **Streamlined Data Discovery:** Simplify the process of identifying vital economic indicators by accessing broad categories of FRED data, ensuring you capture all relevant series effortlessly.
+  
+- **Rapid Data Conversion:** Transform FRED Series IDs into extensive, actionable datasets. Utilize the power of concurrent futures for fast, efficient processing of time-series data, whether original or revised.
+  
+- **Comprehensive Metadata Extraction:** Never lose sight of the context. FredBrain ensures you retain essential metadata, offering a deeper understanding of the time-series data for nuanced analysis.
+  
+- **Designed for Scale:** Built with the Federal Reserve's API limitations in mind, FredBrain optimizes data retrieval operations to stay within the 120 requests per minute cap, ensuring your research continues uninterrupted and efficiently.
+  
+- **Flexible Data Storage:** Whether you prefer local or cloud-based solutions, FredBrain facilitates seamless integration with MySQL databases for reliable, persistent storage of your economic data.
+  
+- **Innovative OpenAI Integration (Experimental):** Embark on a journey with FredBrain's AI feature - an Economist GPT powered by OpenAI. This cutting-edge integration aims to enrich your analysis with profound insights, transforming data into knowledge together with GPT.*
+
+*Note: The integration of OpenAI to generate an Economist GPT is experimental. The results may vary and should be used with caution. FredBrain is not responsible for the accuracy of the generated insights and does not guarantee the suitability of the results for any specific use case. The OpenAI integration is intended to be a helpful tool for generating insights and should be used as a supplement to your analysis, not as a replacement for professional judgment and expertise.
+
 
 ## Installation
 Install the package using 
@@ -93,6 +106,8 @@ pip install FredBrain
 - [Requests](https://pypi.org/project/requests/)
 - [OS](https://docs.python.org/3/library/os.html)
 - [MySQL Connector](https://pypi.org/project/mysql-connector-python/)
+- [Concurrent Futures](https://docs.python.org/3/library/concurrent.futures.html)
+- [Functools](https://docs.python.org/3/library/functools.html)
 - [hashlib](https://docs.python.org/3/library/hashlib.html)
 - [time](https://docs.python.org/3/library/time.html)
 - [OpenAI](https://platform.openai.com/docs/libraries)
@@ -101,29 +116,55 @@ pip install FredBrain
 ## Contributing
 All contributions and ideas are welcome
 # A walk-through - From Search to Time-Series Data
-## Step 1: Importing and getting our initial dataframe of FRED series IDs
-The first thing we can do is import and then begin with a preliminary search to identify a series we want to extract. To do this, we need to import the FredBrain package and related api keys. API keys for FRED can be requested here [Fred API Keys](https://fredaccount.stlouisfed.org/apikeys). For OpenAI, keys can be created here [OpenAI API Keys](https://platform.openai.com/api-keys)
-```sh
+## Step 1: Importing and Initiating Preliminary Search for FRED Series IDs
+Before diving into the vast sea of economic data, let's start by setting up our environment and performing an initial search to identify the FRED series of interest. This involves importing the `FredBrain` package, configuring API keys, and leveraging `FredBrain`'s functionalities to find the relevant data series.
+
+### Prerequisites
+To access the Federal Reserve Economic Data (FRED) and OpenAI services, you'll need to obtain API keys from their respective platforms:
+
+- **FRED API Keys:** Sign up and request your key [here](https://fredaccount.stlouisfed.org/apikeys).
+- **OpenAI API Keys:** Generate your API key by visiting [this link](https://platform.openai.com/api-keys).
+
+### Setting Up
+With your API keys at hand, proceed by importing necessary libraries and initializing the `FredBrain` object with your FRED API key. Here's how:
+
+```python
 from FredBrain import FredBrain
 import os
 import pandas as pd
 
+# Load your API keys from environment variables
 FRED_KEY = os.environ.get("fred_api_key")
 OPENAI_KEY = os.environ.get("openai_api_key")
 
+# Initialize FredBrain with your FRED API Key
 fred = FredBrain(fred_api_key=FRED_KEY)
 ```
-Once this is done we can search for a "series" we believe is relevant to the research or questions we have. To do this, you must input a search text and optionally, enter a search and value attribute
-1. Our search text "Labor"
-2. Our search attributes "Popularity" or "Frequency" or both
-4. Our search value is 75 (returning those series with popularity equal to or greater than 75) or "Monthly" (returning those series with a frequency of monthly)
-5. We repeat this for search text "Employment" and "Wages" as shown
+## Step 2: Search for Relevant Series IDs
+After setting up your FredBrain instance, the next crucial step is to identify relevant data series that align with your research interests or queries. FredBrain simplifies this process, allowing you to specify both search criteria and filters to narrow down the vast data available in the FRED database. 
+
+Here's how to conduct an effective search:
+
+1. **Choose Your Search Texts:** Start with broad keywords that represent your area of interest. For this example, we'll use "Labor", "Employment", and "Wages".
+
+2. **Define Search Attributes:** Decide on the attributes that will help refine your search. Options include "Popularity" and "Frequency", among others.
+
+3. **Set Search Values:** For attributes like "Popularity", specify a threshold (e.g., 50, to return series with popularity equal to or greater than 50). For "Frequency", you might choose "Monthly" to filter for monthly data series.
+
+4. **Execute Searches:** Perform searches for each of your chosen keywords, applying the specified attributes and values. 
+
+Hereâ€™s a code snippet to guide you through searching for series on "Labor", "Employment", and "Wages" with specified popularity and frequency:
 ```sh
+# Define your search parameters
 search_attributes = ["popularity", "frequency"]
 search_values = [50, "Monthly"]
+
+# Conduct the searches
 search_output_labor = fred.search_brain("Labor", search_attributes, search_values)
 search_output_employment = fred.search_brain("Employment", search_attributes, search_values)
 search_output_wages = fred.search_brain("Wages", search_attributes, search_values)
+
+# Combine the search outputs into a single DataFrame
 search_output_combined = pd.concat([search_output_labor, search_output_employment, search_output_wages], ignore_index=True)
 ```
 | id          | notes                                                                     |
@@ -134,16 +175,36 @@ search_output_combined = pd.concat([search_output_labor, search_output_employmen
 | U6RATE      | The series comes from the 'Current Population...                          |
 | LNS11300060 | The series comes from the 'Current Population...                          |
 
-Now we have gotten a `DataFrame` of different series ids and their related metadata
-## Step 2: Retrieve additional metadata related
-Now that we have a `DataFrame` of different series ids we will loop through them to extract additional metadata related to the series. To begin, we need to store the id column into a list and define the relevant metadata that we believe is interesting to retain [FRED Series Doc](https://fred.stlouisfed.org/docs/api/fred/series.html)
-```sh
-series_list = list(search_output_combined['id'])
-relevant_info = ['title', 'frequency', 'units', 'popularity', 'notes']
-series_info_data = []
-for item in series_list:
-    series_info_data.append(fred.fetch_series_info(series_id=item, relevant_info=relevant_info))
+## Step 3: Retrieve additional metadata related
+After identifying the relevant series IDs for your analysis, the next step involves fetching detailed metadata for each series. This metadata provides valuable insights into the data's characteristics and can inform your analysis strategy. FredBrain makes it straightforward to retrieve this information through its `fetch_series_info` method which automates looping through your Series Id list.
+
+### Retrieving Metadata:
+
+1. **Prepare the Series IDs:** First, compile the series IDs from your DataFrame into a list. These IDs are essential for querying the FRED database for metadata.
+
+2. **Select Relevant Metadata Fields:** Decide which metadata fields are crucial for your analysis. Useful fields include 'id', 'title', 'frequency', 'units', and 'notes', among others. A comprehensive list of available fields can be found in the [FRED Series Documentation](https://fred.stlouisfed.org/docs/api/fred/series.html).
+
+3. **Fetch the Metadata:** Use FredBrain's `fetch_series_info` method to retrieve metadata for your list of series IDs. Specify the fields of interest to tailor the information to your needs.
+
+4. **Convert to DataFrame and Save:** Organize the fetched metadata into a pandas DataFrame for easy analysis and manipulation. Optionally, you can save this DataFrame to an Excel file for offline access or further processing.
+
+Here's an example code snippet that demonstrates these steps:
+
+```python
+# Define the metadata fields of interest
+relevant_info = [
+    'id', "realtime_start", "realtime_end", 'title', 'frequency', 'units',
+    "seasonal_adjustment", "last_updated", 'popularity', 'notes'
+]
+
+# Fetch the series metadata
+series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
+
+# Convert the metadata into a DataFrame
 series_information = pd.DataFrame(series_info_data)
+
+# Save the DataFrame to an Excel file for further analysis
+series_information.to_excel("series_information.xlsx")
 ```
 | title                                              | notes                                                                                      |
 |----------------------------------------------------|--------------------------------------------------------------------------------------------|
@@ -159,46 +220,39 @@ series_information = pd.DataFrame(series_info_data)
 | Average Hourly Earnings of All Employees, Priv... | The series comes from the 'Current Employment...                                           |
 | Federal Funds Effective Rate                       | Averages of daily figures. \n\nFor additional ...                                          |
 
-## Step 3: Extract Unrevised, Revised and All Data Releases for Each Series
-After identifying the relevant series through the DataFrame we constructed earlier, our next step involves capturing the initial unrevised, revised and all releases of the observations for each series. This process enriches our dataset with critical metadata and preserves the authenticity of the data as it was first reported.
+## Step 4: Extract Unrevised, Revised and All Data Releases for Each Series
+Having pinpointed the relevant series IDs, we now advance to the critical task of gathering the data in its various states: initial unrevised, latest revised, and all releases respectively while leveraging concurrent futures to optimize the retrieval process and cut down on the time required to fetch the data. This step is pivotal for conducting thorough analyses, particularly in areas requiring precise historical accuracy such as economic modeling or predictive analytics.
+
+### Understanding the Importance of Data Variants
+
+- **Unrevised Data:** Essential for analyses that aim to replicate the conditions and knowledge available at the time the data was first released. This approach helps prevent look-ahead bias, ensuring the predictions or models don't inadvertently incorporate future information not available at the original time of forecasting.
+  
+- **Revised Data:** Offers the most up-to-date version of the data, incorporating any corrections or updates made after the initial release. Vital for analyses that require the most accurate and current data.
+
+- **All Releases:** Provides a comprehensive view by including every version of the data released, allowing for an in-depth study of how data estimates have evolved over time.
 
 ### Why Differentiate Unrevised from Revised Data?
-In applications such as economic modeling or predictive analysis, it's essential to mitigate any potential look-ahead bias. Look-ahead bias occurs when a model inadvertently uses information that was not available at the time of prediction, leading to overfitting and unrealistic performance estimates. By utilizing unrevised data, we ensure our analyses reflect the state of knowledge available at each observation's original reporting time, maintaining the integrity of our predictive efforts. Therefore, we can extract a `DataFrame` of unrevised, revised, and all releases for each series.
+In applications such as economic modeling or predictive analysis, it is important to mitigate any potential look-ahead bias. Look-ahead bias occurs when a model inadvertently uses information that was not available at the time of prediction, leading to overfitting and unrealistic performance estimates. By utilizing unrevised data, we ensure our analyses reflect the state of knowledge available at each observation's original reporting time, maintaining the integrity of our predictive efforts. Therefore, we can extract a `DataFrame` of unrevised, revised, and all releases for each series.
 ## Implementation
-To compile our comprehensive dataset, we iterate over each series ID, retrieving the data points along with their associated metadata. This metadata includes the series' title, frequency, and units, which are then appended to each observation, enhancing our dataset's usability and richness. Additionally, a unique Hash Key is generated automatically for each row to be used later for database insertion and to ensure data integrity and no insertion of duplicate data.
+Between executing each method, we need to let the system rest for 60 seconds to ensure the rate limit of 120 requests per minute is not exceeded. These methods are wrapped by a RateLimitDecorator to ensure that the rate limit is not exceeded while looping through the Series IDs.
+Additionally, a unique Hash Key is generated automatically for each row to be used later for database insertion and to ensure data integrity and no insertion of duplicate data.
 ```sh
-# Initialize empty DataFrames to collect data
-collected_first_releases = pd.DataFrame()
-collected_latest_releases = pd.DataFrame()
-collected_all_releases = pd.DataFrame()
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_first_releases = fred.retrieve_series_first_release(series_ids=series_list)
+collected_first_releases.to_excel("first_releases.xlsx")
 
-for i, item in enumerate(series_list):
-    first_release = fred.retrieve_series_first_release(series_id=item)
-    latest_release = fred.retrieve_series_latest_release(series_id=item)
-    all_releases = fred.retrieve_series_all_releases(series_id=item)
-    if first_release is not None:
-        data_website_url = fred.get_website_url(series_id=item)
-        data_json_url = fred.get_json_url(series_id=item)
-        title = series_information.loc[i, 'title']
-        frequency = series_information.loc[i, 'frequency']
-        unit = series_information.loc[i, 'units']
-        metadata = {
-            'Category': title,
-            'Frequency': frequency,
-            'Units': unit,
-            'Website URL': data_website_url,
-            'JSON URL': data_json_url
-        }
-        for df in [first_release, latest_release, all_releases]:
-            for key, value in metadata.items():
-                df[key] = value
-        collected_first_releases = pd.concat([collected_first_releases, first_release], ignore_index=True)
-        collected_latest_releases = pd.concat([collected_latest_releases, latest_release], ignore_index=True)
-        collected_all_releases = pd.concat([collected_all_releases, all_releases], ignore_index=True)
-    else:
-        print(f"No data available for series {item}.")
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_latest_releases = fred.retrieve_series_latest_release(series_ids=series_list)
+collected_latest_releases.to_excel("latest_releases.xlsx")
+
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
+collected_all_releases.to_excel("all_releases.xlsx")
 ```
-## Step 4: Insert the DataFrame into a MySQL Database for seamless storage
+## Step 5: Insert the DataFrame into a MySQL Database for seamless storage
 After preparing your `DataFrame` object with the desired FRED data, you can insert it into either a local or cloud MySQL database for persistent storage. This step allows for the seamless integration of FRED data into your personal or organizational databases, facilitating easy access and analysis.
 
 ### Why Store Data in a MySQL Database?
@@ -214,7 +268,8 @@ Storing your data in a MySQL database offers several advantages:
 ### Downloading MySQL
 If you don't have MySQL installed on your local machine, you can download it from the official MySQL website: [MySQL Downloads](https://dev.mysql.com/downloads/)
 
-Additionally, for a cloud MySQL database, you can use services such as Amazon RDS, Google Cloud SQL, or Azure Database for MySQL. I currently use a low-cost Planetscale solutions for my MySQL database: [Planetscale](https://planetscale.com/)
+Additionally, for a cloud MySQL database, you can use services such as Amazon RDS, Google Cloud SQL, or Azure Database for MySQL. I currently use Goggle Cloud SQL for my MySQL database. 
+```sh
 ### Preparing MySQL Connection
 Before inserting the data, you need to establish a connection with your MySQL server. Gather your MySQL credentials and determine whether you'll be connecting to an existing database or creating a new one.
 
@@ -234,30 +289,36 @@ host = os.getenv("DATABASE_HOST")
 user = os.getenv("DATABASE_USERNAME")
 passwd = os.getenv("DATABASE_PASSWORD")
 db = os.getenv("DATABASE_NAME")
-ssl_verify_identity = True
-ssl_ca = "C:/ssl/certs/cacert.pem"
 
 # Initialize the database manager and connect to MySQL
-db_manager = MySQLBrain(host, user, passwd, db_name=db, ssl_verify_identity=True, ssl_ca=ssl_ca)
+db_manager = MySQLBrain(host, user, passwd, db_name=db)
 db_manager.list_databases()  # Optional: List all existing databases to verify the connection
 db_manager.check_create_database(db_name)  # Create the database if it doesn't exist
 ```
 ### Inserting DataFrame into the Database
-After establishing a connection and ensuring the desired database is ready, you can proceed to insert your `DataFrame` into the database. Specify the table name where you want to store the data. If the table does not exist, it will be created based on the DataFrame structure.
+With your data now structured in DataFrames and your database connection established, the next step is to insert this data into your database. This process involves specifying the destination table within your database and handling the DataFrame structure to ensure data is stored correctly.
+
+Preparing for Insertion
+1. Table Specification: Identify or define the table name where the data will be stored. If the specified table doesn't exist in your database, it will be automatically created to match the structure of your DataFrame.
+
+2. Chunked Insertion: To prevent SQL timeout errors and enhance the efficiency of the data insertion process, data rows are inserted in chunks of 10,000. This approach ensures a smooth and efficient transfer of data into your database.
+
+3. Automated Table Creation: The fred_create_table_sql method is designed to automatically generate a SQL table that mirrors the structure of your DataFrame, facilitating a seamless integration of FRED data into your database.
+
+Executing the Insertion
 ```sh
 # Insert the DataFrames into the MySQL database
-db_manager.fred_create_table_sql(df=collected_first_releases, table_name="First Releases")
-db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="Latest Releases")
-db_manager.fred_create_table_sql(df=collected_all_releases, table_name="All Releases")
+db_manager.fred_create_table_sql(df=collected_first_releases, table_name="FirstReleases")
+db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="LatestReleases")
+db_manager.fred_create_table_sql(df=collected_all_releases, table_name="AllReleases")
 ```
 Congratulations! Your DataFrame is now stored in the specified MySQL database, making it accessible for future queries and analysis directly from SQL Workbench or any MySQL client.
-## Step 5: Inserting new data into the existing MySQL Table
+## Step 6: Inserting new data into the existing MySQL Table
 If you have new data that you want to append to an existing MySQL table, you can use the `fred_insert_data_sql` method to insert the new data into the table. This method will automatically only insert unique rows based on the hash key, ensuring that no duplicate data is added to the existing table. This allows you to seamlessly add new rows from a new FRED series or updated data from an existing series to your MySQL table.
 ```sh
-
 db_manager.insert_new_rows( df=collected_first_releases, table_name="First Releases")
 ```
-## Step 6: Input the DataFrame into OpenAI (GPT-4) for insights
+## Step 7: Input the DataFrame into OpenAI (GPT-4) for insights
 The `DataFrame` from before can be inputted into the chatgpt method and a prompt of your choosing can be tailored. This will result in an output given by chatgpt based on the prompt and data provided
 ```sh
 # Assuming this method returns a DataFrame
