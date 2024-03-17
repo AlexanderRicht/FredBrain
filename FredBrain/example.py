@@ -37,7 +37,6 @@ print(len(series_list))
 print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
 time.sleep(60)
 collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
-collected_all_releases.to_excel("all_releases.xlsx")
 
 
 
