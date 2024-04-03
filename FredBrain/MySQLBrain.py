@@ -347,6 +347,7 @@ class MySQLBrain:
             .merge(existing_df[['Unique Key']], on="Unique Key", how='left', indicator=True)
             .loc[lambda x: x['_merge'] == 'left_only']
         )
+        print(unique_to_insert)
         unique_to_insert = unique_to_insert.drop(columns=['_merge'])
 
         column_names = ', '.join([f"`{column}`" for column in unique_to_insert.columns])
@@ -355,8 +356,8 @@ class MySQLBrain:
         print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
         if not unique_to_insert.empty:
             total_rows_inserted = 0
-            for i in range(0, len(df), chunk_size):
-                chunk = df.iloc[i:i + chunk_size]
+            for i in range(0, len(unique_to_insert), chunk_size):
+                chunk = unique_to_insert.iloc[i:i + chunk_size]
                 data_to_insert = [
                     tuple([None if pd.isna(value) else value for value in row])
                     for row in chunk.values

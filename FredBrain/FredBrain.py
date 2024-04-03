@@ -263,7 +263,10 @@ class FredBrain:
                 data = response_api.json()
                 series_info = data['seriess'][0]  # Get the first item from the list
                 filtered_info = {key: series_info[key] for key in relevant_info if key in series_info}
-                return pd.Series(filtered_info).astype(str)
+                filtered_info = pd.Series(filtered_info).astype(str)
+                concatenated_string = str(filtered_info['id']) + str(filtered_info['frequency']) + str(filtered_info['units'])
+                filtered_info['Unique Key'] = hashlib.sha256(concatenated_string.encode()).hexdigest()
+                return filtered_info
             else:
                 print(f"Failed to fetch {series_id}: Status {response_api.status_code}")
                 return pd.Series({"error": f"HTTP Status {response_api.status_code}"})
