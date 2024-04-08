@@ -342,41 +342,77 @@ class MySQLBrain:
         existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
         print(existing_df)
         time.sleep(5)
-        unique_to_insert = (
-            df
-            .merge(existing_df[['Unique Key']], on="Unique Key", how='left', indicator=True)
-            .loc[lambda x: x['_merge'] == 'left_only']
-        )
-        print(unique_to_insert)
-        unique_to_insert = unique_to_insert.drop(columns=['_merge'])
-
-        column_names = ', '.join([f"`{column}`" for column in unique_to_insert.columns])
-        placeholders = ', '.join(['%s' for _ in unique_to_insert.columns])
-        sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
-        print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
-        if not unique_to_insert.empty:
+        column_names = ', '.join([f"`{column}`" for column in df.columns])
+        existing_data_query = f"SELECT {column_names} FROM `{table_name}`"
+        print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")
+        self.cursor.execute(existing_data_query)
+        existing_rows = self.cursor.fetchall()
+        existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
+        print(len(existing_df))
+        print(existing_df)
+        time.sleep(5)
+        print("Creating temporary SQL table")
+        temp_table_name = f"temp_{table_name}"
+        create_temp_table_sql = f"CREATE TABLE `{temp_table_name}` LIKE `{table_name}`;"
+        self.cursor.execute(create_temp_table_sql)
+        self.conn.commit()
+        column_names = ', '.join([f"`{col}`" for col in df.columns])
+        placeholders = ', '.join(['%s' for _ in df.columns])
+        insert_stmt = f"INSERT INTO `{temp_table_name}` ({column_names}) VALUES ({placeholders})"
+        data = [tuple([None if pd.isna(value) else value for value in row]) for row in df.values]
+        try:
             total_rows_inserted = 0
-            for i in range(0, len(unique_to_insert), chunk_size):
-                chunk = unique_to_insert.iloc[i:i + chunk_size]
-                data_to_insert = [
-                    tuple([None if pd.isna(value) else value for value in row])
-                    for row in chunk.values
-                ]
-                try:
-                    # Use executemany to insert data in batches
-                    self.cursor.executemany(sql_insert_statement, data_to_insert)
-                    self.conn.commit()  # Commit the transaction
-                    rows_inserted = len(data_to_insert)
-                    total_rows_inserted += rows_inserted
-                    print(f"{rows_inserted} rows inserted successfully into '{table_name}'.")
-                except Error as e:
-                    print(f"Failed to insert data into table '{table_name}': {e}")
-                    break  # Optional: decide if you want to stop on error or continue with the next chunk
-                if total_rows_inserted == len(df):
-                    print(
-                        f"All data inserted successfully into '{table_name}'. Total rows inserted: {total_rows_inserted}.")
-                else:
-                    print(f"Inserted {total_rows_inserted} out of {len(df)} rows into '{table_name}'.")
+            for i in range(0, len(data), chunk_size):
+                chunk = data[i:i + chunk_size]
+                self.cursor.executemany(insert_stmt, chunk)
+                self.conn.commit()
+                rows_inserted = len(chunk)
+                total_rows_inserted += rows_inserted
+                print(f"{rows_inserted} rows inserted successfully into '{temp_table_name}'.")
+        except Error as e:
+            print(f"Failed to insert data into table '{temp_table_name}': {e}")
+            return  # Optional: decide if you want to stop on error or continue with the next chunk
+        if total_rows_inserted == len(df):
+            print(
+                f"All data inserted successfully into '{temp_table_name}'. Total rows inserted: {total_rows_inserted}.")
+        drop_temp_table_sql = f"DROP TABLE IF EXISTS `{temp_table_name}`;"
+        self.cursor.execute(drop_temp_table_sql)
+        self.conn.commit()
+        # unique_to_insert = (
+        #     df
+        #     .merge(existing_df[['Unique Key']], on="Unique Key", how='left', indicator=True)
+        #     .loc[lambda x: x['_merge'] == 'left_only']
+        # )
+        # print(unique_to_insert)
+        # unique_to_insert = unique_to_insert.drop(columns=['_merge'])
+        #
+        # column_names = ', '.join([f"`{column}`" for column in unique_to_insert.columns])
+        # placeholders = ', '.join(['%s' for _ in unique_to_insert.columns])
+        # sql_insert_statement = f"INSERT INTO `{table_name}` ({column_names}) VALUES ({placeholders})"
+        # print(f"SQL Statement - Insert New Rows:\n{sql_insert_statement}")
+        # if not unique_to_insert.empty:
+        #     total_rows_inserted = 0
+        #     for i in range(0, len(unique_to_insert), chunk_size):
+        #         chunk = unique_to_insert.iloc[i:i + chunk_size]
+        #         data_to_insert = [
+        #             tuple([None if pd.isna(value) else value for value in row])
+        #             for row in chunk.values
+        #         ]
+        #         try:
+        #             # Use executemany to insert data in batches
+        #             self.cursor.executemany(sql_insert_statement, data_to_insert)
+        #             self.conn.commit()  # Commit the transaction
+        #             rows_inserted = len(data_to_insert)
+        #             total_rows_inserted += rows_inserted
+        #             print(f"{rows_inserted} rows inserted successfully into '{table_name}'.")
+        #         except Error as e:
+        #             print(f"Failed to insert data into table '{table_name}': {e}")
+        #             break  # Optional: decide if you want to stop on error or continue with the next chunk
+        #         if total_rows_inserted == len(df):
+        #             print(
+        #                 f"All data inserted successfully into '{table_name}'. Total rows inserted: {total_rows_inserted}.")
+        #         else:
+        #             print(f"Inserted {total_rows_inserted} out of {len(df)} rows into '{table_name}'.")
 
     def close_connection(self):
         """
