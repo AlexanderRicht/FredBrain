@@ -3,7 +3,9 @@ MANIFEST.in
 README.md
 pyproject.toml
 setup.py
+FredBrain/.env
 FredBrain/FredBrain.py
+FredBrain/Labor Market Analysis.ipynb
 FredBrain/MySQLBrain.py
 FredBrain/RateLimit.py
 FredBrain/all_releases.xlsx
@@ -14,8 +16,10 @@ FredBrain/latest_releases2.xlsx
 FredBrain/series_information.xlsx
 FredBrain/sql_example.py
 FredBrain/test.py
+FredBrain/trend_plot.png
 FredBrain.egg-info/PKG-INFO
 FredBrain.egg-info/SOURCES.txt
 FredBrain.egg-info/dependency_links.txt
 FredBrain.egg-info/requires.txt
 FredBrain.egg-info/top_level.txt
+FredBrain/.ipynb_checkpoints/Labor Market Analysis-checkpoint.ipynb

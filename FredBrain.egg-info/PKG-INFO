@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: FredBrain
-Version: 0.6.0
+Version: 0.7.0
 Summary: A Python API for retrieving Federal Reserve Economic Data at Scale and feeding it to OpenAI
 Home-page: https://github.com/AlexanderRicht/FredBrain
 Author: Alexander Richt
