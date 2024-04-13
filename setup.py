@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="FredBrain",
-    version="0.6.0",
+    version="0.7.0",
     description="A Python API for retrieving Federal Reserve Economic Data at Scale and feeding it to OpenAI",
     long_description=pathlib.Path("README.md").read_text(),
     long_description_content_type="text/markdown",

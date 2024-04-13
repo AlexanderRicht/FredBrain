@@ -276,7 +276,6 @@ class MySQLBrain:
         """
         df_datatype = df.dtypes
         columns_with_types = [
-            "`row_id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "`sql_upload_datetime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         ]
         columns_with_headers = []
@@ -334,23 +333,14 @@ class MySQLBrain:
             The presence of this column ensures that the method can effectively prevent duplicate entries in the database
             by performing an incremental load.
           """
-        column_names = ', '.join([f"`{column}`" for column in df.columns])
-        existing_data_query = f"SELECT {column_names} FROM `{table_name}`"
-        print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")
-        self.cursor.execute(existing_data_query)
-        existing_rows = self.cursor.fetchall()
-        existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
-        print(existing_df)
-        time.sleep(5)
-        column_names = ', '.join([f"`{column}`" for column in df.columns])
-        existing_data_query = f"SELECT {column_names} FROM `{table_name}`"
-        print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")
-        self.cursor.execute(existing_data_query)
-        existing_rows = self.cursor.fetchall()
-        existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
-        print(len(existing_df))
-        print(existing_df)
-        time.sleep(5)
+        # column_names = ', '.join([f"`{column}`" for column in df.columns])
+        # existing_data_query = f"SELECT {column_names} FROM `{table_name}`"
+        # print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")
+        # self.cursor.execute(existing_data_query)
+        # existing_rows = self.cursor.fetchall()
+        # existing_df = pd.DataFrame(existing_rows, columns=df.columns.to_list())
+        # print(len(existing_df))
+        # print(existing_df)
         print("Creating temporary SQL table")
         temp_table_name = f"temp_{table_name}"
         create_temp_table_sql = f"CREATE TABLE `{temp_table_name}` LIKE `{table_name}`;"
@@ -375,6 +365,21 @@ class MySQLBrain:
         if total_rows_inserted == len(df):
             print(
                 f"All data inserted successfully into '{temp_table_name}'. Total rows inserted: {total_rows_inserted}.")
+        insert_unique_sql = f"""
+                INSERT INTO `{table_name}`
+                SELECT temp.*
+                FROM `{temp_table_name}` AS temp
+                WHERE NOT EXISTS (
+                  SELECT 1
+                  FROM `{table_name}` AS existing
+                  WHERE temp.`Unique Key` = existing.`Unique Key`
+                );
+         """
+        print(f"SQL Statement - Insert Unique Rows into existing table:\n{insert_unique_sql}")
+        self.cursor.execute(insert_unique_sql)
+        rows_inserted = self.cursor.rowcount
+        self.conn.commit()
+        print(f"{rows_inserted} rows inserted successfully into '{table_name}'.")
         drop_temp_table_sql = f"DROP TABLE IF EXISTS `{temp_table_name}`;"
         self.cursor.execute(drop_temp_table_sql)
         self.conn.commit()

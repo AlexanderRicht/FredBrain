@@ -3,3 +3,5 @@ graft MySQLBrain
 include pyproject.toml
 include setup.py
 global-exclude *py[cod]
+exclude .env
+exclude .env.example
