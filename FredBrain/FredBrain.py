@@ -130,6 +130,7 @@ class FredBrain:
             print("Response content:", response.text)
             return None
 
+    @RateLimitDecorator(calls=calls_per_minute)
     def get_categories_range(self, start_id, end_id=None):
         """
         Retrieves a range of categories from the FRED database, each potentially related to multiple series.

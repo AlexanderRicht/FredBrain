@@ -15,7 +15,7 @@
    - [Step 5: Insert DataFrame into MySQL](#step-5-insert-the-dataframe-into-a-mysql-database-for-seamless-storage)
    - [Step 6: Insert New Data into Existing MySQL Table](#step-6-inserting-new-data-into-the-existing-mysql-table)
    - [Step 7: Input DataFrame into OpenAI (GPT-4) for Insights](#step-7-input-the-dataframe-into-openai-gpt-4-for-insights)
-# FredBrain: A Python Package for retrieving Federal Reserve Economic Data at Scale
+# FredBrain: A Python Package for retrieving Federal Reserve Economic Data at ScaleWhat i
 ## Introduction
 [FredBrain](https://pypi.org/project/FredBrain) is a Python package that offers a practical approach for accessing economic data from the Federal Reserve ([FRED API Documentation](https://fred.stlouisfed.org/docs/api/fred/)).  It was created to offer a straightforward way for enthusiasts and professionals alike to access economic data from the Federal Reserve. This Python package simplifies the process of fetching, storing, and analyzing economic information, making it a valuable tool for anyone engaged in economic research, financial analysis, or model development. Additionally, it takes an experimental approach to integrating the OpenAI GPT framework into the class with the ultimate aim of creating an Ad-Hoc GPT economist expert to assist you in your analysis. Hence, why we refer to the class as `FredBrain`. The class itself will hopefully act as a catalyst to your retrieval of FRED data as well as the Brain to power OpenAI Chat Completions. 
 

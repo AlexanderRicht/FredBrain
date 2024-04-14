@@ -26,6 +26,7 @@ search_output_combined = pd.concat([search_output_labor, search_output_employmen
 series_list = list(set(search_output_combined['id']))
 print(len(series_list))
 print(series_list)
+
 #
 # print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
 # time.sleep(60)
@@ -44,12 +45,14 @@ print(series_list)
 
 
 
-print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as previous method was called.")
-time.sleep(60)
-relevant_info = ['id', "realtime_start", "realtime_end", 'title', 'frequency', 'units', "seasonal_adjustment", "last_updated", 'popularity', 'notes']
-series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
-series_information = pd.DataFrame(series_info_data)
-series_information.to_excel("series_information.xlsx")
+# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as previous method was called.")
+# time.sleep(60)
+# relevant_info = ['id', "realtime_start", "realtime_end", 'title', 'frequency', 'units', "seasonal_adjustment", "last_updated", 'popularity', 'notes']
+# series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
+# series_information = pd.DataFrame(series_info_data)
+# series_information.to_excel("series_information.xlsx")
+
+categories = fred.get_series_from_category(1, 1000000)
 
 
 host = os.getenv("DATABASE_HOST")
@@ -72,7 +75,8 @@ db_manager = MySQLBrain(host, user, passwd, db_name=db)
 # db_manager.fred_create_table_sql(df=collected_first_releases, table_name="FirstReleases")
 # db_manager.fred_create_table_sql(df=collected_latest_releases, table_name="LatestReleases")
 # db_manager.fred_create_table_sql(df=collected_all_releases, table_name="AllReleaseVersion")
-db_manager.fred_create_table_sql(df=series_information, table_name="SeriesMetaData")
+# db_manager.fred_create_table_sql(df=series_information, table_name="SeriesMetaData")
+db_manager.fred_create_table_sql(df=categories, table_name="Categories")
 
 
 # db_manager.close_connection()
