@@ -327,7 +327,7 @@ class FredBrain:
                     print(f"Series ID {series_id} generated an exception: {exc}")
         return pd.DataFrame(results)
 
-    def transform_series(self, response_api, series_id):
+    def transform_series(self, response_api, series_id, include_realtime=False):
         """
         Transforms an API response into a structured pandas DataFrame.
 
@@ -367,10 +367,12 @@ class FredBrain:
             # Convert 'value' column to numeric, set errors='coerce' to handle any conversion issues
             df['value'] = pd.to_numeric(df['value'], errors='coerce').astype(float).round(5)
             df['series'] = str(series_id)
-            df['hash_key'] = (df['realtime_start'].astype(str) +
-                              df['date'].astype(str) +
-                              df['value'].astype(str) +
-                              df['series'].astype(str))
+            if include_realtime:
+                df['hash_key'] = (df['realtime_start'].astype(str) + df['date'].astype(str) +
+                                  df['value'].astype(str) + df['series'].astype(str))
+            else:
+                df['hash_key'] = (df['date'].astype(str) + df['value'].astype(str) + df['series'].astype(str))
+
             df['hash_key'] = df['hash_key'].apply(lambda x: hashlib.sha256(x.encode()).hexdigest())
             return df
         else:
@@ -467,7 +469,7 @@ class FredBrain:
         response_api = requests.get(url)
         if response_api.status_code == 200:
             try:
-                df = self.transform_series(response_api, series_id)
+                df = self.transform_series(response_api, series_id, include_realtime=True)
                 if not df.empty:
                     df['Website URL'] = url_website
                     df['JSON URL'] = url
