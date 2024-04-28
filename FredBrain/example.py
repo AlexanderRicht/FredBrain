@@ -19,18 +19,17 @@ search_output_wages = fred.search_brain("Wages", search_attributes, search_value
 search_output_salary = fred.search_brain("Salary", search_attributes, search_values)
 search_output_income = fred.search_brain("Income", search_attributes, search_values)
 search_output_housing = fred.search_brain("Housing", search_attributes, search_values)
-search_output_age = fred.search_brain("Population", search_attributes, search_values)
+search_output_age = fred.search_brain("Vacancies", search_attributes, search_values)
 
 
-search_output_combined = pd.concat([search_output_labor, search_output_employment, search_output_wages, search_output_salary, search_output_income, search_output_housing, search_output_age],
+search_output_combined = pd.concat([search_output_income, search_output_employment, search_output_wages, search_output_salary, search_output_income, search_output_housing, search_output_age],
                                    ignore_index=True)
 search_output_combined = search_output_combined.drop_duplicates(subset=['id'])
 
 
-series_list = list(set(search_output_combined['id']))
+series_list = list(set(search_output_age['id']))
 print(len(series_list))
 print(series_list)
-
 
 print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
 time.sleep(60)
@@ -89,7 +88,6 @@ db_manager.insert_new_rows( df=collected_first_releases, table_name="FirstReleas
 # db_manager.insert_new_rows( df=collected_all_releases, table_name="AllReleases")
 # db_manager.insert_new_rows( df=series_information, table_name="SeriesMetaData")
 
-#
 # # Assuming this method returns a DataFrame
 # # analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary of the key trends in this economic data.")
 # # print(analysis)
