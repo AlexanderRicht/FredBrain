@@ -12,29 +12,29 @@ from powerbiclient.authentication import DeviceCodeLoginAuthentication
 FRED_KEY = os.environ.get("fred_api_key")
 fred = FredBrain(fred_api_key=FRED_KEY)
 
-categories = fred.get_series_from_category(1, 10)
-print(categories)
-categories.to_excel("categories_information.xlsx")
+# categories = fred.get_series_from_category(1, 10)
+# print(categories)
+# categories.to_excel("categories_information.xlsx")
 
 # load_dotenv()
 #
-# # Now access the variables using os.getenv
-# DATABASE_HOST = os.getenv('DATABASE_HOST')
-# DATABASE_USERNAME = os.getenv('DATABASE_USERNAME')
-# DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD')
-# DATABASE_NAME = os.getenv('DATABASE_NAME')
-#
-# try:
-#     print("Connecting to the database...")
-#     # Pass connection parameters as keyword arguments
-#     db_manager = mysql.connector.connect(host=DATABASE_HOST, user=DATABASE_USERNAME, passwd=DATABASE_PASSWORD, db=DATABASE_NAME)
-#     cursor = db_manager.cursor()
-#     cursor.execute("SHOW TABLES")  # This is the correct method to list all databases
-#     for db in cursor:
-#         print(db)
-#     print("Connected:", db_manager)
-# except mysql.connector.Error as e:
-#     print("Error while connecting to MySQL", e)
+# Now access the variables using os.getenv
+DATABASE_HOST = os.getenv('DATABASE_HOST')
+DATABASE_USERNAME = os.getenv('DATABASE_USERNAME')
+DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD')
+DATABASE_NAME = os.getenv('DATABASE_NAME')
+
+try:
+    print("Connecting to the database...")
+    # Pass connection parameters as keyword arguments
+    db_manager = mysql.connector.connect(host=DATABASE_HOST, user=DATABASE_USERNAME, passwd=DATABASE_PASSWORD, db=DATABASE_NAME)
+    cursor = db_manager.cursor()
+    cursor.execute("SHOW TABLES")  # This is the correct method to list all databases
+    for db in cursor:
+        print(db)
+    print("Connected:", db_manager)
+except mysql.connector.Error as e:
+    print("Error while connecting to MySQL", e)
 #
 # existing_data_query = f"SELECT * FROM research.FirstReleases Where Series = 'UNRATE';"
 # print(f"SQL Statement - Retrieve Existing Data:\n{existing_data_query}")

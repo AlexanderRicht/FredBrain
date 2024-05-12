@@ -12,22 +12,36 @@ OPENAI_KEY = os.environ.get("openai_api_key")
 fred = FredBrain(fred_api_key=FRED_KEY)
 
 search_attributes = ["popularity"]
-search_values = [10]
+search_values = [50]
 search_output_labor = fred.search_brain("Labor", search_attributes, search_values)
 search_output_employment = fred.search_brain("Employment", search_attributes, search_values)
 search_output_wages = fred.search_brain("Wages", search_attributes, search_values)
 search_output_salary = fred.search_brain("Salary", search_attributes, search_values)
 search_output_income = fred.search_brain("Income", search_attributes, search_values)
+search_output_earnings = fred.search_brain("Earnings", search_attributes, search_values)
+search_output_wealth = fred.search_brain("Wealth", search_attributes, search_values)
+search_output_worth = fred.search_brain("Worth", search_attributes, search_values)
+search_output_debt = fred.search_brain("Debt", search_attributes, search_values)
+search_output_real = fred.search_brain("Real", search_attributes, search_values)
+search_output_corporate = fred.search_brain("Corporate", search_attributes, search_values)
+search_output_price = fred.search_brain("Price", search_attributes, search_values)
+search_output_energy = fred.search_brain("Energy", search_attributes, search_values)
 search_output_housing = fred.search_brain("Housing", search_attributes, search_values)
-search_output_age = fred.search_brain("Vacancies", search_attributes, search_values)
+search_output_vacancies = fred.search_brain("Vacancies", search_attributes, search_values)
+search_output_inequality = fred.search_brain("Inequality", search_attributes, search_values)
+search_output_equality = fred.search_brain("equality", search_attributes, search_values)
+search_output_profit = fred.search_brain("Profit", search_attributes, search_values)
+search_output_median = fred.search_brain("Median", search_attributes, search_values)
 
 
-search_output_combined = pd.concat([search_output_income, search_output_employment, search_output_wages, search_output_salary, search_output_income, search_output_housing, search_output_age],
-                                   ignore_index=True)
-search_output_combined = search_output_combined.drop_duplicates(subset=['id'])
 
 
-series_list = list(set(search_output_age['id']))
+#search_output_combined = pd.concat([search_output_income, search_output_employment, search_output_wages, search_output_salary, search_output_income, search_output_housing, search_output_age],
+#                                   ignore_index=True)
+search_output_combined = search_output_debt.drop_duplicates(subset=['id'])
+
+
+series_list = list(set(search_output_combined['id']))
 print(len(series_list))
 print(series_list)
 
@@ -36,24 +50,24 @@ time.sleep(60)
 collected_first_releases = fred.retrieve_series_first_release(series_ids=series_list)
 collected_first_releases.to_excel("first_releases.xlsx")
 
-# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
-# time.sleep(60)
-# collected_latest_releases = fred.retrieve_series_latest_release(series_ids=series_list)
-# collected_latest_releases.to_excel("latest_releases.xlsx")
-
-#
-# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
-# time.sleep(60)
-# collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_latest_releases = fred.retrieve_series_latest_release(series_ids=series_list)
+collected_latest_releases.to_excel("latest_releases.xlsx")
 
 
-#
-# print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as previous method was called.")
-# time.sleep(60)
-# relevant_info = ['id', "realtime_start", "realtime_end", 'title', 'frequency', 'units', "seasonal_adjustment", "last_updated", 'popularity', 'notes']
-# series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
-# series_information = pd.DataFrame(series_info_data)
-# series_information.to_excel("series_information.xlsx")
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as method was previously called.")
+time.sleep(60)
+collected_all_releases = fred.retrieve_series_all_releases(series_ids=series_list)
+
+
+
+print("Sleeping for 60 seconds before continuing to ensure rate limit is not exceeded as previous method was called.")
+time.sleep(60)
+relevant_info = ['id', "realtime_start", "realtime_end", 'title', 'frequency', 'units', "seasonal_adjustment", "last_updated", 'popularity', 'notes']
+series_info_data = fred.fetch_series_info(series_ids=series_list, relevant_info=relevant_info)
+series_information = pd.DataFrame(series_info_data)
+series_information.to_excel("series_information.xlsx")
 
 # categories = fred.get_series_from_category(1, 1000000)
 
@@ -84,9 +98,9 @@ db_manager = MySQLBrain(host, user, passwd, db_name=db)
 # db_manager.close_connection()
 
 db_manager.insert_new_rows( df=collected_first_releases, table_name="FirstReleases")
-# db_manager.insert_new_rows( df=collected_latest_releases, table_name="LatestReleases")
-# db_manager.insert_new_rows( df=collected_all_releases, table_name="AllReleases")
-# db_manager.insert_new_rows( df=series_information, table_name="SeriesMetaData")
+db_manager.insert_new_rows( df=collected_latest_releases, table_name="LatestReleases")
+# db_manager.insert_new_rows( df=collected_all_releases, table_name="AllReleaseVersion")
+db_manager.insert_new_rows( df=series_information, table_name="SeriesMetaData")
 
 # # Assuming this method returns a DataFrame
 # # analysis = fred.analyze_with_chatgpt(all_data_observations, "Provide a summary of the key trends in this economic data.")
