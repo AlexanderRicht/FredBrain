@@ -32,13 +32,15 @@ search_output_inequality = fred.search_brain("Inequality", search_attributes, se
 search_output_equality = fred.search_brain("equality", search_attributes, search_values)
 search_output_profit = fred.search_brain("Profit", search_attributes, search_values)
 search_output_median = fred.search_brain("Median", search_attributes, search_values)
+search_output_gdp = fred.search_brain("GDP", search_attributes, search_values)
+
 
 
 
 
 #search_output_combined = pd.concat([search_output_income, search_output_employment, search_output_wages, search_output_salary, search_output_income, search_output_housing, search_output_age],
 #                                   ignore_index=True)
-search_output_combined = search_output_debt.drop_duplicates(subset=['id'])
+search_output_combined = search_output_gdp.drop_duplicates(subset=['id'])
 
 
 series_list = list(set(search_output_combined['id']))
